@@ -165,10 +165,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   projectilePrefab: {fileID: 4077492564023948726, guid: e7f1554a020ea0d43ad3b04c86e02d1d, type: 3}
-  attackRate: 1
-  attackAngle: 120
+  attackRate: 0.3
+  attackAngle: 100
   projectileSpeed: 10
-  spawnDistance: 1
+  spawnDistance: 2
   body: {fileID: 371136135}
 --- !u!1 &330585543
 GameObject:
@@ -333,13 +333,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 371136134}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0.19936788, w: 0.97992474}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 12406708}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 23}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &371136136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -540,7 +540,6 @@ GameObject:
   - component: {fileID: 416594577}
   - component: {fileID: 416594576}
   - component: {fileID: 416594575}
-  - component: {fileID: 416594574}
   m_Layer: 5
   m_Name: MenuCanvas
   m_TagString: Untagged
@@ -548,25 +547,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &416594574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 416594573}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f8920aa1db75334498643e2d9eb3eac2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  segmentImages: []
-  segmentTexts: []
-  selectionIndicator: {fileID: 0}
-  availableInstruments: []
-  currentSelection: []
-  playerController: {fileID: 0}
-  selectedSegment: -1
 --- !u!114 &416594575
 MonoBehaviour:
   m_ObjectHideFlags: 0

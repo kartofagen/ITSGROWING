@@ -18,4 +18,13 @@ public class ProjectileMovement : MonoBehaviour
     {
         transform.Translate(direction * speed * Time.deltaTime, Space.World);
     }
+    
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            Destroy(other.gameObject);
+            Destroy(gameObject);
+        }
+    }
 }
