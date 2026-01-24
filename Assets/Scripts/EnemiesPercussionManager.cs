@@ -12,7 +12,7 @@ public class EnemiesPercussionManager : InstrumentBase
     public float spawnDistance = 10f;
     
     [SerializeField] private float playOffset = 0.1f;
-    [SerializeField] private float moveDistance = 0.5f; // Фиксированное расстояние за шаг
+    [SerializeField] private float moveDistance = 0.5f;
 
     private Transform player;
     private float nextSpawnTime = 0f;
@@ -21,16 +21,15 @@ public class EnemiesPercussionManager : InstrumentBase
     
     private List<double> pendingMoveTimes = new List<double>();
     private object _lock = new object();
+    private bool isQuitting = false;
 
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         
-        if (midiFile != null)
-        {
-            SetupMidiPlayback();
-        }
-        else
+        // Не запускаем playback автоматически
+        // Ждем первого вызова RestartMidiProcessing от MusicManager
+        if (midiFile == null)
         {
             Debug.LogWarning("EnemiesManager: No MIDI file assigned. Enemies will spawn but not move to rhythm.");
         }
@@ -38,14 +37,14 @@ public class EnemiesPercussionManager : InstrumentBase
 
     void Update()
     {
-        // Спавн врагов по таймеру
+        if (isQuitting) return;
+
         if (Time.time >= nextSpawnTime)
         {
             SpawnEnemy();
             nextSpawnTime = Time.time + spawnRate;
         }
         
-        // Обработка запланированных движений
         List<double> toProcess = new List<double>();
         lock (_lock)
         {
@@ -59,8 +58,6 @@ public class EnemiesPercussionManager : InstrumentBase
             }
         }
 
-        
-        // Применяем движения ко всем врагам
         foreach (var moveTime in toProcess)
         {
             MoveAllEnemiesOneStep();
@@ -69,6 +66,8 @@ public class EnemiesPercussionManager : InstrumentBase
     
     void SpawnEnemy()
     {
+        if (isQuitting || player == null) return;
+
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         Vector2 spawnPosition = (Vector2)player.position + spawnDistance * new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
 
@@ -82,6 +81,8 @@ public class EnemiesPercussionManager : InstrumentBase
     
     private void SetupMidiPlayback()
     {
+        if (isQuitting) return;
+
         using (var memoryStream = new MemoryStream(midiFile.bytes))
         {
             var mf = MidiFile.Read(memoryStream);
@@ -90,52 +91,65 @@ public class EnemiesPercussionManager : InstrumentBase
 
             playback = new Playback(timedEvents, tempoMap);
             playback.EventPlayed += OnEventPlayed;
+            
+            startDspTime = AudioSettings.dspTime;
             playback.Start();
-            startDspTime = Time.time;
         }
     }
     
     private void OnEventPlayed(object sender, MidiEventPlayedEventArgs e)
     {
-        if (e.Event is NoteOnEvent noteOn && noteOn.Velocity > 0)
+        if (isQuitting || playback == null) return;
+
+        try
         {
-            var currentTime = playback.GetCurrentTime<MetricTimeSpan>();
-            double moveTime = startDspTime + (double)currentTime.TotalSeconds + (double)playOffset;
-        
-            lock (_lock)
+            if (e.Event is NoteOnEvent noteOn && noteOn.Velocity > 0)
             {
-                pendingMoveTimes.Add(moveTime);
+                var currentTime = playback.GetCurrentTime<MetricTimeSpan>();
+                double moveTime = startDspTime + (double)currentTime.TotalSeconds + (double)playOffset;
+        
+                lock (_lock)
+                {
+                    pendingMoveTimes.Add(moveTime);
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            if (!isQuitting)
+            {
+                Debug.LogWarning($"Error in OnEventPlayed: {ex.Message}");
             }
         }
     }
-
     
     private void MoveAllEnemiesOneStep()
     {
+        if (isQuitting) return;
+
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
         foreach (var enemy in enemies)
         {
-            EnemyMovement perc = enemy.GetComponent<EnemyMovement>();
-            if (perc != null)
+            if (enemy != null)
             {
-                perc.MoveOneStep();
+                EnemyMovement perc = enemy.GetComponent<EnemyMovement>();
+                if (perc != null)
+                {
+                    perc.MoveOneStep();
+                }
             }
         }
     }
     
     public void RestartMidiProcessing()
     {
+        if (isQuitting) return;
+
+        StopPlayback();
+
         lock (_lock)
         {
             pendingMoveTimes.Clear();
-        }
-
-        if (playback != null)
-        {
-            playback.EventPlayed -= OnEventPlayed;
-            playback.Stop();
-            playback.Dispose();
-            playback = null;
         }
 
         if (midiFile != null)
@@ -143,13 +157,52 @@ public class EnemiesPercussionManager : InstrumentBase
             SetupMidiPlayback();
         }
     }
-    
-    void OnDestroy()
+
+    private void StopPlayback()
     {
         if (playback != null)
         {
-            playback.EventPlayed -= OnEventPlayed;
-            playback.Dispose();
+            try
+            {
+                playback.EventPlayed -= OnEventPlayed;
+                playback.Stop();
+                
+                // Даем время на завершение нативных таймеров
+                System.Threading.Thread.Sleep(50);
+                
+                playback.Dispose();
+            }
+            catch (System.Exception ex)
+            {
+                if (!isQuitting)
+                {
+                    Debug.LogWarning($"Error stopping playback: {ex.Message}");
+                }
+            }
+            finally
+            {
+                playback = null;
+            }
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        isQuitting = true;
+        StopPlayback();
+    }
+    
+    void OnDestroy()
+    {
+        isQuitting = true;
+        StopPlayback();
+    }
+
+    void OnDisable()
+    {
+        if (!isQuitting)
+        {
+            StopPlayback();
         }
     }
 }

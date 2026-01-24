@@ -9,7 +9,7 @@ public class MusicManager : MonoBehaviour
     [System.Serializable]
     public class MidiControlledObject
     {
-        public MonoBehaviour script; // Lead или EnemiesManager
+        public MonoBehaviour script;
     }
 
     public List<MidiControlledObject> midiControlledObjects = new List<MidiControlledObject>();
@@ -17,8 +17,8 @@ public class MusicManager : MonoBehaviour
 
     private float lastStartTime = 0f;
     private float interval = 0f;
-
     private bool running = false;
+    private bool isQuitting = false;
 
     void Start()
     {
@@ -33,15 +33,29 @@ public class MusicManager : MonoBehaviour
 
     public void StartLoop()
     {
+        if (isQuitting) return;
+
         running = true;
         interval = baseClip.length;
 
-        NotifyAll();
+        // Даем объектам время на инициализацию перед первым рестартом
+        StartCoroutine(DelayedFirstNotify());
 
         lastStartTime = Time.time;
         foreach (AudioSource source in sources)
         {
             source.Play();
+        }
+    }
+
+    private System.Collections.IEnumerator DelayedFirstNotify()
+    {
+        // Ждем один кадр, чтобы все Start() методы завершились
+        yield return null;
+        
+        if (!isQuitting)
+        {
+            NotifyAll();
         }
     }
 
@@ -56,7 +70,7 @@ public class MusicManager : MonoBehaviour
 
     void Update()
     {
-        if (!running)
+        if (!running || isQuitting)
             return;
 
         TimerBasedUpdate();
@@ -79,25 +93,59 @@ public class MusicManager : MonoBehaviour
 
     private void NotifyAll()
     {
+        if (isQuitting) return;
+
         foreach (var obj in midiControlledObjects)
         {
-            if (obj.script is Lead lead)
+            if (obj.script == null) continue;
+
+            try
             {
-                lead.RestartMidiProcessing();
+                if (obj.script is Lead lead)
+                {
+                    lead.RestartMidiProcessing();
+                }
+                else if (obj.script is EnemiesPercussionManager enemiesManager)
+                {
+                    enemiesManager.RestartMidiProcessing();
+                }
+                else if (obj.script is Bass bass)
+                {
+                    bass.RestartCycle();
+                }
+                else
+                {
+                    Debug.LogWarning($"MusicManager: Unknown script type on {obj.script.name}");
+                }
             }
-            else if (obj.script is EnemiesPercussionManager enemiesManager)
+            catch (System.Exception ex)
             {
-                enemiesManager.RestartMidiProcessing();
-            }
-            else
-            {
-                Debug.LogWarning($"MusicManager: Unknown script type on {obj.script.name}");
+                if (!isQuitting)
+                {
+                    Debug.LogError($"Error restarting cycle for {obj.script.name}: {ex.Message}");
+                }
             }
         }
     }
 
+    void OnApplicationQuit()
+    {
+        isQuitting = true;
+        StopAllCoroutines();
+        StopLoop();
+    }
+
     void OnDisable()
     {
-        StopLoop();
+        if (!isQuitting)
+        {
+            StopLoop();
+        }
+    }
+
+    void OnDestroy()
+    {
+        isQuitting = true;
+        StopAllCoroutines();
     }
 }

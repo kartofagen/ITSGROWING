@@ -11,7 +11,6 @@ public class Lead : InstrumentBase
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private float attackRate = 1f;
     [SerializeField] private float attackAngle = 120f;
-    [SerializeField] private float projectileSpeed = 10f;
     [SerializeField] private float spawnDistance = 1f;
 
     [SerializeField] private bool autoDetectNoteRange = true;
@@ -24,9 +23,12 @@ public class Lead : InstrumentBase
     private bool useTimer = false;
     private float nextFireTime = 0f;
     private double startDspTime;
+
+    private float initialAngleOffset;
     
     private List<PendingShot> pendingShots = new List<PendingShot>();
     private object _lock = new object();
+    private bool isQuitting = false;
 
     private struct PendingShot
     {
@@ -36,11 +38,9 @@ public class Lead : InstrumentBase
 
     void Start()
     {
-        if (midiFile != null)
-        {
-            SetupMidiPlayback();
-        }
-        else
+        initialAngleOffset = transform.localEulerAngles.z;
+            
+        if (midiFile == null)
         {
             useTimer = true;
         }
@@ -48,6 +48,8 @@ public class Lead : InstrumentBase
 
     void Update()
     {
+        if (isQuitting) return;
+
         if (useTimer && Time.time >= nextFireTime)
         {
             float randomAngle = Random.Range(-attackAngle / 2f, attackAngle / 2f);
@@ -76,6 +78,8 @@ public class Lead : InstrumentBase
 
     private void SetupMidiPlayback()
     {
+        if (isQuitting) return;
+
         using (var memoryStream = new MemoryStream(midiFile.bytes))
         {
             var mf = MidiFile.Read(memoryStream);
@@ -90,12 +94,11 @@ public class Lead : InstrumentBase
 
             playback = new Playback(timedEvents, tempoMap);
             playback.EventPlayed += OnEventPlayed;
-            playback.Start();
-
+            
             startDspTime = AudioSettings.dspTime;
+            playback.Start();
         }
     }
-
 
     private void DetectNoteRange(MidiFile mf)
     {
@@ -116,33 +119,46 @@ public class Lead : InstrumentBase
 
     private void OnEventPlayed(object sender, MidiEventPlayedEventArgs e)
     {
-        if (e.Event is NoteOnEvent noteOn && noteOn.Velocity > 0)
+        if (isQuitting || playback == null) return;
+
+        try
         {
-            int noteNumber = noteOn.NoteNumber;
-        
-            float fraction = Mathf.Clamp01(
-                (noteNumber - minMidiNote) / (float)(maxMidiNote - minMidiNote)
-            );
-        
-            float relativeAngle = (fraction - 0.5f) * attackAngle;
-
-            var currentTime = playback.GetCurrentTime<MetricTimeSpan>();
-            double spawnDspTime = startDspTime + (double)currentTime.TotalSeconds + (double)playOffset;
-
-            lock (_lock)
+            if (e.Event is NoteOnEvent noteOn && noteOn.Velocity > 0)
             {
-                pendingShots.Add(new PendingShot { 
-                    angle = relativeAngle, 
-                    spawnTime = (float)spawnDspTime
-                });
+                int noteNumber = noteOn.NoteNumber;
+        
+                float fraction = Mathf.Clamp01(
+                    (noteNumber - minMidiNote) / (float)(maxMidiNote - minMidiNote)
+                );
+        
+                float relativeAngle = (fraction - 0.5f) * attackAngle;
+
+                var currentTime = playback.GetCurrentTime<MetricTimeSpan>();
+                double spawnDspTime = startDspTime + (double)currentTime.TotalSeconds + (double)playOffset;
+
+                lock (_lock)
+                {
+                    pendingShots.Add(new PendingShot { 
+                        angle = relativeAngle, 
+                        spawnTime = (float)spawnDspTime
+                    });
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            if (!isQuitting)
+            {
+                Debug.LogWarning($"Error in OnEventPlayed: {ex.Message}");
             }
         }
     }
 
-
     private void SpawnProjectile(float relativeAngle)
     {
-        float baseAngle = transform.eulerAngles.z;
+        if (isQuitting) return;
+
+        float baseAngle = transform.localEulerAngles.z - initialAngleOffset;
         float spawnAngle = (baseAngle + relativeAngle) * Mathf.Deg2Rad;
         
         Vector2 spawnPos = (Vector2)transform.position + 
@@ -151,24 +167,19 @@ public class Lead : InstrumentBase
 
         GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
         ProjectileMovement pm = projectile.GetComponent<ProjectileMovement>();
-        pm.speed = projectileSpeed;
         pm.direction = direction;
         projectile.tag = "Projectile";
     }
     
     public void RestartMidiProcessing()
     {
+        if (isQuitting) return;
+
+        StopPlayback();
+
         lock (_lock)
         {
             pendingShots.Clear();
-        }
-
-        if (playback != null)
-        {
-            playback.EventPlayed -= OnEventPlayed;
-            playback.Stop();
-            playback.Dispose();
-            playback = null;
         }
 
         if (midiFile != null)
@@ -181,12 +192,51 @@ public class Lead : InstrumentBase
         }
     }
 
-    void OnDestroy()
+    private void StopPlayback()
     {
         if (playback != null)
         {
-            playback.EventPlayed -= OnEventPlayed;
-            playback.Dispose();
+            try
+            {
+                playback.EventPlayed -= OnEventPlayed;
+                playback.Stop();
+                
+                // Даем время на завершение нативных таймеров
+                System.Threading.Thread.Sleep(50);
+                
+                playback.Dispose();
+            }
+            catch (System.Exception ex)
+            {
+                if (!isQuitting)
+                {
+                    Debug.LogWarning($"Error stopping playback: {ex.Message}");
+                }
+            }
+            finally
+            {
+                playback = null;
+            }
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        isQuitting = true;
+        StopPlayback();
+    }
+
+    void OnDestroy()
+    {
+        isQuitting = true;
+        StopPlayback();
+    }
+
+    void OnDisable()
+    {
+        if (!isQuitting)
+        {
+            StopPlayback();
         }
     }
 }
