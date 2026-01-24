@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class ProjectileMovement : MonoBehaviour
 {
-    [HideInInspector] public float speed = 10f;
-    [HideInInspector] public Vector2 direction;
+    public float speed = 10f;
+    public Vector2 direction;
     public float lifetime = 5f;
 
     void Start()

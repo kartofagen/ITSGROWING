@@ -1,92 +1,133 @@
-using System;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class MusicManager : MonoBehaviour
 {
-    public static MusicManager Instance;
-    
-    [Header("Музыкальные настройки")]
-    public float bpm = 120;
-    public AudioSource musicSource;
-    private int beatsPerBar = 4;
-    
-    [Header("Tact events")]
-    public UnityEvent onBeat;
-    public UnityEvent onBar;
-    
-    [Header("Tick events")]
-    public UnityEvent onPercussionTick;
-    public UnityEvent onBassTick;
-    public UnityEvent onLeadTick;
-    
-    [Header("Instrument ticks")]
-    [Range(1, 8)] public int percussionEveryNBeat = 1;
-    [Range(1, 8)] public int bassEveryNBeat = 2;
-    [Range(1, 16)] public int leadEveryNBeat = 4;
-    
-    private float beatInterval;
-    private float nextBeatTime;
-    private int currentBeat = 0;
-    
-    private void Awake()
+    public enum Mode
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
+        DetectLoop,
+        TimerBased
     }
-    
-    private void Start()
+
+    public Lead lead;
+    public Mode mode = Mode.TimerBased;
+    public bool autoStart = true;
+
+    // Для DetectLoop
+    private float prevTime = 0f;
+    private bool prevIsPlaying = false;
+
+    // Для TimerBased
+    private float lastStartTime = 0f;
+    private float interval = 0f;
+
+    private AudioSource src;
+    private bool running = false;
+
+    void Awake()
     {
-        CalculateBeatInterval();
-        if (musicSource.isPlaying)
-            nextBeatTime = musicSource.time + beatInterval;
+        src = GetComponent<AudioSource>();
     }
-    
-    private void Update()
+
+    void Start()
     {
-        if (!musicSource.isPlaying) return;
-        
-        if (musicSource.time >= nextBeatTime)
+        if (autoStart)
+            StartLoop();
+    }
+
+    void OnEnable()
+    {
+        prevTime = 0f;
+        prevIsPlaying = false;
+        lastStartTime = 0f;
+    }
+
+    public void StartLoop()
+    {
+        running = true;
+
+        if (mode == Mode.DetectLoop)
         {
-            Beat();
-            nextBeatTime += beatInterval;
+            src.loop = true;
+            prevTime = src.time;
+            prevIsPlaying = src.isPlaying;
+
+            if (!src.isPlaying)
+            {
+                src.Play();
+                NotifyLead();
+            }
+        }
+        else // TimerBased
+        {
+            src.loop = false;
+            interval = src.clip.length / Mathf.Max(0.0001f, src.pitch);
+            lastStartTime = Time.time;
+            src.Play();
+            NotifyLead();
         }
     }
-    
-    private void Beat()
+
+    public void StopLoop()
     {
-        currentBeat++;
-        
-        // Основное событие бита
-        onBeat?.Invoke();
-        
-        // Проверяем перкуссию
-        if (currentBeat % percussionEveryNBeat == 0)
-            onPercussionTick?.Invoke();
-        
-        // Проверяем бас
-        if (currentBeat % bassEveryNBeat == 0)
-            onBassTick?.Invoke();
-        
-        // Проверяем лиды
-        if (currentBeat % leadEveryNBeat == 0)
-            onLeadTick?.Invoke();
-        
-        // Сброс счета на каждый бар
-        if (currentBeat >= beatsPerBar)
-            currentBeat = 0;
+        running = false;
+        if (src != null)
+            src.Stop();
     }
-    
-    private void CalculateBeatInterval()
+
+    void Update()
     {
-        beatInterval = 60f / bpm;
+        if (!running || src == null || src.clip == null)
+            return;
+
+        switch (mode)
+        {
+            case Mode.DetectLoop:
+                DetectLoopUpdate();
+                break;
+
+            case Mode.TimerBased:
+                TimerBasedUpdate();
+                break;
+        }
     }
-    
-    public void StartMusic()
+
+    private void DetectLoopUpdate()
     {
-        musicSource.Play();
-        nextBeatTime = musicSource.time + beatInterval;
+        if (!src.isPlaying)
+            return;
+
+        float currentTime = src.time;
+        if (prevIsPlaying && currentTime < prevTime - 0.001f)
+        {
+            // обнаружен новый цикл
+            NotifyLead();
+        }
+
+        prevTime = currentTime;
+        prevIsPlaying = src.isPlaying;
+    }
+
+    private void TimerBasedUpdate()
+    {
+        float now = Time.time;
+        if (now >= lastStartTime + interval - 1e-3f)
+        {
+            src.Play();
+            lastStartTime = now;
+            NotifyLead();
+        }
+    }
+
+    private void NotifyLead()
+    {
+        if (lead != null)
+        {
+            lead.RestartMidiProcessing();
+        }
+    }
+
+    void OnDisable()
+    {
+        StopLoop();
     }
 }

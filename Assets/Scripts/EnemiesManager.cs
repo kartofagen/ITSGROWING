@@ -31,8 +31,7 @@ public class EnemiesManager : MonoBehaviour
         GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
         enemy.tag = "Enemy";
 
-        Enemy em = enemy.AddComponent<Enemy>();
+        Percussion em = enemy.AddComponent<Percussion>();
         em.target = player;
-        
     }
 }
