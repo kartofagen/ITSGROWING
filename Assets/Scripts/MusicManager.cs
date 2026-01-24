@@ -1,32 +1,24 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class MusicManager : MonoBehaviour
 {
-    public enum Mode
+    [SerializeField] private AudioClip baseClip;
+    [SerializeField] private AudioSource[] sources;
+
+    [System.Serializable]
+    public class MidiControlledObject
     {
-        DetectLoop,
-        TimerBased
+        public MonoBehaviour script; // Lead или EnemiesManager
     }
 
-    public Lead lead;
-    public Mode mode = Mode.TimerBased;
+    public List<MidiControlledObject> midiControlledObjects = new List<MidiControlledObject>();
     public bool autoStart = true;
 
-    // Для DetectLoop
-    private float prevTime = 0f;
-    private bool prevIsPlaying = false;
-
-    // Для TimerBased
     private float lastStartTime = 0f;
     private float interval = 0f;
 
-    private AudioSource src;
     private bool running = false;
-
-    void Awake()
-    {
-        src = GetComponent<AudioSource>();
-    }
 
     void Start()
     {
@@ -36,75 +28,38 @@ public class MusicManager : MonoBehaviour
 
     void OnEnable()
     {
-        prevTime = 0f;
-        prevIsPlaying = false;
         lastStartTime = 0f;
     }
 
     public void StartLoop()
     {
         running = true;
+        interval = baseClip.length;
 
-        if (mode == Mode.DetectLoop)
-        {
-            src.loop = true;
-            prevTime = src.time;
-            prevIsPlaying = src.isPlaying;
+        NotifyAll();
 
-            if (!src.isPlaying)
-            {
-                src.Play();
-                NotifyLead();
-            }
-        }
-        else // TimerBased
+        lastStartTime = Time.time;
+        foreach (AudioSource source in sources)
         {
-            src.loop = false;
-            interval = src.clip.length / Mathf.Max(0.0001f, src.pitch);
-            lastStartTime = Time.time;
-            src.Play();
-            NotifyLead();
+            source.Play();
         }
     }
 
     public void StopLoop()
     {
         running = false;
-        if (src != null)
-            src.Stop();
+        foreach (AudioSource source in sources)
+        {
+            source.Stop();
+        }
     }
 
     void Update()
     {
-        if (!running || src == null || src.clip == null)
+        if (!running)
             return;
 
-        switch (mode)
-        {
-            case Mode.DetectLoop:
-                DetectLoopUpdate();
-                break;
-
-            case Mode.TimerBased:
-                TimerBasedUpdate();
-                break;
-        }
-    }
-
-    private void DetectLoopUpdate()
-    {
-        if (!src.isPlaying)
-            return;
-
-        float currentTime = src.time;
-        if (prevIsPlaying && currentTime < prevTime - 0.001f)
-        {
-            // обнаружен новый цикл
-            NotifyLead();
-        }
-
-        prevTime = currentTime;
-        prevIsPlaying = src.isPlaying;
+        TimerBasedUpdate();
     }
 
     private void TimerBasedUpdate()
@@ -112,17 +67,32 @@ public class MusicManager : MonoBehaviour
         float now = Time.time;
         if (now >= lastStartTime + interval - 1e-3f)
         {
-            src.Play();
+            NotifyAll();
+
+            foreach (AudioSource source in sources)
+            {
+                source.Play();
+            }
             lastStartTime = now;
-            NotifyLead();
         }
     }
 
-    private void NotifyLead()
+    private void NotifyAll()
     {
-        if (lead != null)
+        foreach (var obj in midiControlledObjects)
         {
-            lead.RestartMidiProcessing();
+            if (obj.script is Lead lead)
+            {
+                lead.RestartMidiProcessing();
+            }
+            else if (obj.script is EnemiesPercussionManager enemiesManager)
+            {
+                enemiesManager.RestartMidiProcessing();
+            }
+            else
+            {
+                Debug.LogWarning($"MusicManager: Unknown script type on {obj.script.name}");
+            }
         }
     }
 

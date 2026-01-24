@@ -23,8 +23,8 @@ public class Lead : InstrumentBase
     private Playback playback;
     private bool useTimer = false;
     private float nextFireTime = 0f;
-    private float startTime;
-
+    private double startDspTime;
+    
     private List<PendingShot> pendingShots = new List<PendingShot>();
     private object _lock = new object();
 
@@ -60,7 +60,7 @@ public class Lead : InstrumentBase
         {
             for (int i = pendingShots.Count - 1; i >= 0; i--)
             {
-                if (Time.time >= pendingShots[i].spawnTime)
+                if (AudioSettings.dspTime >= pendingShots[i].spawnTime)
                 {
                     toSpawn.Add(pendingShots[i]);
                     pendingShots.RemoveAt(i);
@@ -91,9 +91,11 @@ public class Lead : InstrumentBase
             playback = new Playback(timedEvents, tempoMap);
             playback.EventPlayed += OnEventPlayed;
             playback.Start();
-            startTime = Time.time;
+
+            startDspTime = AudioSettings.dspTime;
         }
     }
+
 
     private void DetectNoteRange(MidiFile mf)
     {
@@ -110,8 +112,6 @@ public class Lead : InstrumentBase
         
         minMidiNote = Mathf.Max(0, minNote - 1);
         maxMidiNote = Mathf.Min(127, maxNote + 1);
-        
-        Debug.Log($"Автоматически определен диапазон нот: {minMidiNote}-{maxMidiNote}");
     }
 
     private void OnEventPlayed(object sender, MidiEventPlayedEventArgs e)
@@ -119,25 +119,26 @@ public class Lead : InstrumentBase
         if (e.Event is NoteOnEvent noteOn && noteOn.Velocity > 0)
         {
             int noteNumber = noteOn.NoteNumber;
-            
+        
             float fraction = Mathf.Clamp01(
                 (noteNumber - minMidiNote) / (float)(maxMidiNote - minMidiNote)
             );
-            
+        
             float relativeAngle = (fraction - 0.5f) * attackAngle;
 
             var currentTime = playback.GetCurrentTime<MetricTimeSpan>();
-            float spawnTime = startTime + (float)currentTime.TotalSeconds + playOffset;
+            double spawnDspTime = startDspTime + (double)currentTime.TotalSeconds + (double)playOffset;
 
             lock (_lock)
             {
                 pendingShots.Add(new PendingShot { 
                     angle = relativeAngle, 
-                    spawnTime = spawnTime 
+                    spawnTime = (float)spawnDspTime
                 });
             }
         }
     }
+
 
     private void SpawnProjectile(float relativeAngle)
     {
@@ -178,8 +179,6 @@ public class Lead : InstrumentBase
         {
             useTimer = true;
         }
-
-        Debug.Log("Lead: RestartMidiProcessing called — playback restarted and pending shots cleared.");
     }
 
     void OnDestroy()
