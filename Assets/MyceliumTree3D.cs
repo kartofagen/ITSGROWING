@@ -67,6 +67,22 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Range(0f, 1f)] public float planeSlideStrength = 1f;
 
+    [Header("Bounds (Longitude slice)")]
+    public bool useThetaLimit = true;
+
+    [Tooltip("Минимальная долгота theta (радианы). 0 = ось +X.")]
+    public float thetaMin = 0f;
+
+    [Tooltip("Максимальная долгота theta (радианы). Например 2*PI/3.")]
+    public float thetaMax = 2f * Mathf.PI / 3f;
+
+    public enum ThetaOutMode { ClampAndSlide, ClampStop, StopBranch }
+    public ThetaOutMode thetaOutMode = ThetaOutMode.ClampAndSlide;
+
+    [Range(0f, 1f)] public float thetaSlideStrength = 1f;
+
+
+
 
     [Header("Seed")]
     public int seed = 12345;
@@ -284,6 +300,37 @@ public class MyceliumTree3D : MonoBehaviour
                 }
             }
             // --- end hemisphere plane ---
+            // --- theta (longitude) limit ---
+            if (useThetaLimit)
+            {
+                float theta = GetTheta(nextPos);
+
+                if (!IsThetaInRange(theta))
+                {
+                    float boundary = NearestThetaBoundary(theta);
+
+                    if (thetaOutMode == ThetaOutMode.StopBranch)
+                        break;
+
+                    nextPos = ClampPointToTheta(nextPos, boundary);
+
+                    if (thetaOutMode == ThetaOutMode.ClampStop)
+                    {
+                        float stepLenStop = Vector3.Distance(pos, nextPos);
+                        pos = nextPos;
+                        g += stepLenStop;
+                        pts.Add(pos);
+                        dists.Add(g);
+                        break;
+                    }
+
+                    // ClampAndSlide: направляем рост вдоль граничной плоскости
+                    dir = SlideDirectionOnThetaPlane(dir, boundary);
+                }
+            }
+            // --- end theta limit ---
+
+            
 
             float stepLen = Vector3.Distance(pos, nextPos);
             pos = nextPos;
@@ -398,33 +445,109 @@ public class MyceliumTree3D : MonoBehaviour
     private static float Lerp(float a, float b, float t) => a + (b - a) * t;
 
     private Vector3 ProjectInsideSphere(Vector3 p)
-{
-    Vector3 c = sphereCenter;
-    float R = Mathf.Max(1e-6f, sphereRadius - surfaceInset);
-    Vector3 v = p - c;
-    float m = v.magnitude;
+    {
+        Vector3 c = sphereCenter;
+        float R = Mathf.Max(1e-6f, sphereRadius - surfaceInset);
+        Vector3 v = p - c;
+        float m = v.magnitude;
 
-    if (m <= R) return p;
-    return c + (v / m) * R; // на поверхности (или чуть внутри)
-}
+        if (m <= R) return p;
+        return c + (v / m) * R; // на поверхности (или чуть внутри)
+    }
 
-private Vector3 SlideDirectionOnSphere(Vector3 dir, Vector3 posOnOrNearSurface)
-{
-    // делаем направление касательным к сфере в точке pos
-    Vector3 n = SafeNormalize(posOnOrNearSurface - sphereCenter, Vector3.up); // нормаль сферы
-    Vector3 tangent = dir - Vector3.Dot(dir, n) * n; // убрали радиальную компоненту
-    tangent = SafeNormalize(tangent, AnyPerpendicular(n));
-    // смешиваем: 0 = не трогать, 1 = полностью касательная
-    return SafeNormalize(Vector3.Lerp(dir, tangent, slideStrength), tangent);
-}
+    private Vector3 SlideDirectionOnSphere(Vector3 dir, Vector3 posOnOrNearSurface)
+    {
+        // делаем направление касательным к сфере в точке pos
+        Vector3 n = SafeNormalize(posOnOrNearSurface - sphereCenter, Vector3.up); // нормаль сферы
+        Vector3 tangent = dir - Vector3.Dot(dir, n) * n; // убрали радиальную компоненту
+        tangent = SafeNormalize(tangent, AnyPerpendicular(n));
+        // смешиваем: 0 = не трогать, 1 = полностью касательная
+        return SafeNormalize(Vector3.Lerp(dir, tangent, slideStrength), tangent);
+    }
 
-private Vector3 SlideDirectionOnPlane(Vector3 dir, Vector3 planeNormal)
-{
-    planeNormal = SafeNormalize(planeNormal, Vector3.up);
-    Vector3 tangent = dir - Vector3.Dot(dir, planeNormal) * planeNormal;
-    tangent = SafeNormalize(tangent, AnyPerpendicular(planeNormal));
-    return SafeNormalize(Vector3.Lerp(dir, tangent, planeSlideStrength), tangent);
-}
+    private Vector3 SlideDirectionOnPlane(Vector3 dir, Vector3 planeNormal)
+    {
+        planeNormal = SafeNormalize(planeNormal, Vector3.up);
+        Vector3 tangent = dir - Vector3.Dot(dir, planeNormal) * planeNormal;
+        tangent = SafeNormalize(tangent, AnyPerpendicular(planeNormal));
+        return SafeNormalize(Vector3.Lerp(dir, tangent, planeSlideStrength), tangent);
+    }
+
+    static float WrapAngle01(float a) // -> [0, 2PI)
+    {
+        float twoPi = Mathf.PI * 2f;
+        a %= twoPi;
+        if (a < 0) a += twoPi;
+        return a;
+    }
+
+    float GetTheta(Vector3 p)
+    {
+        Vector3 v = p - sphereCenter;
+        return WrapAngle01(Mathf.Atan2(v.z, v.x));
+    }
+
+    bool IsThetaInRange(float theta)
+    {
+        // Поддержка случаев когда диапазон "переваливает" через 0 (wrap)
+        float a = WrapAngle01(thetaMin);
+        float b = WrapAngle01(thetaMax);
+        theta = WrapAngle01(theta);
+
+        if (a <= b) return theta >= a && theta <= b;
+        // wrap case, например [300°, 30°]
+        return theta >= a || theta <= b;
+    }
+
+    float NearestThetaBoundary(float theta)
+    {
+        theta = WrapAngle01(theta);
+        float a = WrapAngle01(thetaMin);
+        float b = WrapAngle01(thetaMax);
+
+        // если диапазон без wrap (как у тебя), просто берём ближнюю
+        if (a <= b)
+        {
+            float da = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, a * Mathf.Rad2Deg));
+            float db = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, b * Mathf.Rad2Deg));
+            return (da <= db) ? a : b;
+        }
+
+        // wrap: тоже выбираем ближайшую границу по DeltaAngle
+        float da2 = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, a * Mathf.Rad2Deg));
+        float db2 = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, b * Mathf.Rad2Deg));
+        return (da2 <= db2) ? a : b;
+    }
+
+    Vector3 ClampPointToTheta(Vector3 p, float targetTheta)
+    {
+        Vector3 v = p - sphereCenter;
+        float y = v.y;
+        float rho = Mathf.Sqrt(v.x * v.x + v.z * v.z); // расстояние до оси Y
+
+        float ct = Mathf.Cos(targetTheta);
+        float st = Mathf.Sin(targetTheta);
+
+        Vector3 clamped = new Vector3(rho * ct, y, rho * st);
+        return sphereCenter + clamped;
+    }
+
+    Vector3 SlideDirectionOnThetaPlane(Vector3 dir, float boundaryTheta)
+    {
+        // Плоскость-граница проходит через ось Y и направлена по радиусу r=(cosθ,0,sinθ)
+        // Нормаль к этой плоскости: n = cross(up, r) = (sinθ, 0, -cosθ)
+        float ct = Mathf.Cos(boundaryTheta);
+        float st = Mathf.Sin(boundaryTheta);
+        Vector3 n = new Vector3(st, 0f, -ct); // нормаль плоскости
+
+        // убираем компоненту вдоль нормали, чтобы скользить вдоль плоскости
+        Vector3 tangent = dir - Vector3.Dot(dir, n) * n;
+        tangent = SafeNormalize(tangent, AnyPerpendicular(n));
+
+        return SafeNormalize(Vector3.Lerp(dir, tangent, thetaSlideStrength), tangent);
+    }
+
+
 
 
 }
