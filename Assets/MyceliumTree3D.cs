@@ -45,6 +45,29 @@ public class MyceliumTree3D : MonoBehaviour
     [Tooltip("Усиление длины сегмента у основания (1.0 = без изменений).")]
     [Range(1f, 3f)] public float baseSegLenBoost = 1.25f;
 
+    [Header("Bounds (Sphere)")]
+    public bool useSphereBounds = true;
+    public Vector3 sphereCenter = Vector3.zero;
+    public float sphereRadius = 6f;
+
+    public enum SphereOutMode { ClampToSurfaceAndSlide, ClampToSurfaceStop, StopBranch }
+    public SphereOutMode sphereOutMode = SphereOutMode.ClampToSurfaceAndSlide;
+
+    [Tooltip("Насколько сильно прижимать направление к касательной при движении по сфере (0..1).")]
+    [Range(0f, 1f)] public float slideStrength = 1f;
+
+    [Tooltip("Небольшой отступ внутрь, чтобы избежать дрожания clip/границы (в метрах).")]
+    public float surfaceInset = 0.001f;
+
+    [Header("Bounds (Hemisphere)")]
+    public bool useHemisphere = true;
+
+    public enum HemispherePlaneMode { ClampAndSlide, ClampStop, StopBranch }
+    public HemispherePlaneMode hemispherePlaneMode = HemispherePlaneMode.ClampAndSlide;
+
+    [Range(0f, 1f)] public float planeSlideStrength = 1f;
+
+
     [Header("Seed")]
     public int seed = 12345;
 
@@ -78,6 +101,8 @@ public class MyceliumTree3D : MonoBehaviour
 
         Vector3 rootPos = Vector3.zero;
         Vector3 rootDir = Vector3.up;
+
+        sphereCenter = Vector3.zero; // или transform.TransformPoint(...)
 
         GrowBranch(
             branches,
@@ -195,13 +220,78 @@ public class MyceliumTree3D : MonoBehaviour
             dir = SafeNormalize(dir + noise + localUp * (float)NextSigned(rng) * wiggle * 0.15f, dir);
 
             Vector3 nextPos = pos + dir * thisSegLen;
-            float stepLen = Vector3.Distance(pos, nextPos);
 
+            // --- sphere bounds ---
+            if (useSphereBounds)
+            {
+                Vector3 clamped = ProjectInsideSphere(nextPos);
+
+                if ((clamped - nextPos).sqrMagnitude > 1e-12f)
+                {
+                    // Мы вышли за сферу
+                    if (sphereOutMode == SphereOutMode.StopBranch)
+                    {
+                        // просто заканчиваем ветку
+                        break;
+                    }
+
+                    // Приземляемся на поверхность
+                    nextPos = clamped;
+
+                    if (sphereOutMode == SphereOutMode.ClampToSurfaceStop)
+                    {
+                        // добавим точку и закончим ветку (получится "упёрлась в стенку")
+                        float stepLenStop = Vector3.Distance(pos, nextPos);
+                        pos = nextPos;
+                        g += stepLenStop;
+                        pts.Add(pos);
+                        dists.Add(g);
+                        break;
+                    }
+
+                    // ClampToSurfaceAndSlide: меняем направление на касательное, чтобы дальше расти вдоль сферы
+                    dir = SlideDirectionOnSphere(dir, nextPos);
+                }
+            }
+            // --- end sphere bounds ---
+            // --- hemisphere plane (верхняя часть) ---
+            if (useHemisphere)
+            {
+                float planeY = sphereCenter.y;
+
+                if (nextPos.y < planeY)
+                {
+                    if (hemispherePlaneMode == HemispherePlaneMode.StopBranch)
+                    {
+                        break;
+                    }
+
+                    // Кладём на плоскость
+                    nextPos.y = planeY;
+
+                    if (hemispherePlaneMode == HemispherePlaneMode.ClampStop)
+                    {
+                        float stepLenStop = Vector3.Distance(pos, nextPos);
+                        pos = nextPos;
+                        g += stepLenStop;
+                        pts.Add(pos);
+                        dists.Add(g);
+                        break;
+                    }
+
+                    // Слайдим вдоль плоскости (нормаль вверх)
+                    dir = SlideDirectionOnPlane(dir, Vector3.up);
+                }
+            }
+            // --- end hemisphere plane ---
+
+            float stepLen = Vector3.Distance(pos, nextPos);
             pos = nextPos;
             g += stepLen;
 
             pts.Add(pos);
             dists.Add(g);
+
 
             // иногда ветвим по ходу — и даём детям правильный startGlobalDist = g
             if (depth < maxDepth && i > 2 && i < thisSegments - 3)
@@ -306,4 +396,35 @@ public class MyceliumTree3D : MonoBehaviour
 
     private static double NextSigned(System.Random r) => r.NextDouble() * 2.0 - 1.0;
     private static float Lerp(float a, float b, float t) => a + (b - a) * t;
+
+    private Vector3 ProjectInsideSphere(Vector3 p)
+{
+    Vector3 c = sphereCenter;
+    float R = Mathf.Max(1e-6f, sphereRadius - surfaceInset);
+    Vector3 v = p - c;
+    float m = v.magnitude;
+
+    if (m <= R) return p;
+    return c + (v / m) * R; // на поверхности (или чуть внутри)
+}
+
+private Vector3 SlideDirectionOnSphere(Vector3 dir, Vector3 posOnOrNearSurface)
+{
+    // делаем направление касательным к сфере в точке pos
+    Vector3 n = SafeNormalize(posOnOrNearSurface - sphereCenter, Vector3.up); // нормаль сферы
+    Vector3 tangent = dir - Vector3.Dot(dir, n) * n; // убрали радиальную компоненту
+    tangent = SafeNormalize(tangent, AnyPerpendicular(n));
+    // смешиваем: 0 = не трогать, 1 = полностью касательная
+    return SafeNormalize(Vector3.Lerp(dir, tangent, slideStrength), tangent);
+}
+
+private Vector3 SlideDirectionOnPlane(Vector3 dir, Vector3 planeNormal)
+{
+    planeNormal = SafeNormalize(planeNormal, Vector3.up);
+    Vector3 tangent = dir - Vector3.Dot(dir, planeNormal) * planeNormal;
+    tangent = SafeNormalize(tangent, AnyPerpendicular(planeNormal));
+    return SafeNormalize(Vector3.Lerp(dir, tangent, planeSlideStrength), tangent);
+}
+
+
 }
