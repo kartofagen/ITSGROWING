@@ -118,6 +118,9 @@ public class MyceliumGrowController : MonoBehaviour
     void Apply()
     {
         if (mr == null) return; // Guard against call before Start/Awake
+        
+        // Ensure MaterialPropertyBlock is initialized
+        if (mpb == null) mpb = new MaterialPropertyBlock();
 
         mr.GetPropertyBlock(mpb);
         mpb.SetFloat(GrowID, grow);

@@ -14,7 +14,7 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Header("Tree")]
     [Range(0, 20)] public int maxDepth = 10;
-    [Range(2, 80)] public int segmentsPerBranch = 18;
+    [Range(2, 200)] public int segmentsPerBranch = 18;
     public float segmentLength = 0.25f;
     [Range(0f, 1f)] public float wiggle = 0.22f;
     [Range(0f, 90f)] public float branchSpreadDegrees = 35f;
@@ -29,12 +29,6 @@ public class MyceliumTree3D : MonoBehaviour
     [Header("Base branching (no stubs)")]
     [Tooltip("С какой доли ствола разрешаем боковые ветки (0..1). 0.25 = после 25% ствола.")]
     [Range(0f, 1f)] public float trunkBranchStart01 = 0.25f;
-
-    [Tooltip("Сколько гарантированных боковых веток создать на стволе у основания.")]
-    [Range(0, 30)] public int guaranteedTrunkBranches = 10;
-
-    [Tooltip("В каком диапазоне ствола (0..1) размещать гарантированные ветки.")]
-    [Range(0f, 1f)] public float trunkBranchBand01 = 0.55f;
 
     [Tooltip("Минимум сегментов у веток на малой глубине (чтобы не были 'пеньками').")]
     [Range(2, 100)] public int baseMinSegments = 18;
@@ -81,8 +75,15 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Range(0f, 1f)] public float thetaSlideStrength = 1f;
 
+    [Header("Target Growth")]
+    [Tooltip("Target object that branches will grow towards and surround.")]
+    public Transform targetObject;
 
+    [Tooltip("How strongly branches are attracted to the target (0 = no attraction, 1 = strong attraction).")]
+    [Range(0f, 1f)] public float targetAttractionStrength = 0.7f;
 
+    [Tooltip("Multiplier for target bounds to determine spread radius around target.")]
+    public float targetSpreadRadiusMultiplier = 1.5f;
 
     [Header("Lights Generation")]
     [Range(0, 20)] public int lightCount = 5;
@@ -100,6 +101,8 @@ public class MyceliumTree3D : MonoBehaviour
     private System.Random rng;
     private MeshFilter mf;
     private int branchCount;
+    private Vector3 rootPosition; // Store root position for target attraction calculations
+    private float trunkTotalLength = 0f; // Total length of the trunk (depth 0) for trunkBranchStart01 calculation
 
     private void Awake()
     {
@@ -116,11 +119,13 @@ public class MyceliumTree3D : MonoBehaviour
     {
         rng = new System.Random(seed);
         branchCount = 0;
+        trunkTotalLength = 0f; // Reset trunk length
 
         var branches = new List<BranchPath>(256);
 
         Vector3 rootPos = Vector3.zero;
         Vector3 rootDir = Vector3.up;
+        rootPosition = rootPos; // Store for target attraction calculations
 
         sphereCenter = Vector3.zero; // или transform.TransformPoint(...)
 
@@ -147,6 +152,10 @@ public class MyceliumTree3D : MonoBehaviour
 
         foreach (var br in branches)
         {
+            // Skip branches with less than 2 points (can happen with StopBranch modes)
+            if (br.points == null || br.points.Count < 2)
+                continue;
+
             // global u по точкам
             var u01 = new float[br.globalDist.Count];
             for (int i = 0; i < u01.Length; i++) u01[i] = br.globalDist[i] / maxDist;
@@ -351,7 +360,42 @@ public class MyceliumTree3D : MonoBehaviour
             Vector3 noise = RandomOnUnitSphere(rng) * wiggle;
             noise -= Vector3.Dot(noise, dir) * dir;
 
-            dir = SafeNormalize(dir + noise + localUp * (float)NextSigned(rng) * wiggle * 0.15f, dir);
+            Vector3 baseDir = dir + noise + localUp * (float)NextSigned(rng) * wiggle * 0.15f;
+
+            // Target attraction blending
+            if (targetObject != null && targetAttractionStrength > 0f)
+            {
+                bool withinBounds = IsWithinTargetBounds(pos, targetObject);
+                float attractionStrength = GetTargetAttractionStrength(pos, targetObject, rootPosition);
+
+                if (attractionStrength > 0f)
+                {
+                    Vector3 toTarget = (targetObject.position - pos);
+                    float distToTarget = toTarget.magnitude;
+                    
+                    if (distToTarget > 1e-6f)
+                    {
+                        toTarget /= distToTarget; // Normalize
+
+                        if (withinBounds)
+                        {
+                            // Within target bounds - apply spreading behavior
+                            Vector3 spreadDir = GetTargetSpreadDirection(pos, baseDir, targetObject);
+                            // Blend between spreading and slight attraction
+                            baseDir = Vector3.Lerp(baseDir, spreadDir, 0.6f);
+                            // Still maintain some attraction but weaker
+                            baseDir = Vector3.Lerp(baseDir, toTarget, attractionStrength * 0.2f);
+                        }
+                        else
+                        {
+                            // Outside bounds - blend attraction with natural growth
+                            baseDir = Vector3.Lerp(baseDir, toTarget, attractionStrength);
+                        }
+                    }
+                }
+            }
+
+            dir = SafeNormalize(baseDir, dir);
 
             Vector3 nextPos = pos + dir * thisSegLen;
 
@@ -457,17 +501,41 @@ public class MyceliumTree3D : MonoBehaviour
             pts.Add(pos);
             dists.Add(g);
 
+            // Update trunk total length during growth (for depth 0)
+            if (depth == 0)
+            {
+                trunkTotalLength = g;
+            }
+
 
             // иногда ветвим по ходу — и даём детям правильный startGlobalDist = g
             if (depth < maxDepth && i > 2 && i < thisSegments - 3)
             {
+                // Check trunkBranchStart01 for trunk (depth 0) - use segment index as proxy
+                if (depth == 0)
+                {
+                    float segmentProgress = (float)(i + 1) / thisSegments;
+                    if (segmentProgress < trunkBranchStart01)
+                        continue; // Skip branching if we haven't reached the threshold yet
+                }
+
                 float splitProb = 0.06f * Mathf.Lerp(1.0f, 0.6f, depth / Mathf.Max(1f, maxDepth));
                 if (rng.NextDouble() < splitProb)
                     SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
             }
         }
 
-        outBranches.Add(new BranchPath { points = pts, globalDist = dists, radius = thisRadius });
+        // Only add branch if it has at least 2 points (required for TubeMeshBuilder)
+        if (pts.Count >= 2)
+        {
+            outBranches.Add(new BranchPath { points = pts, globalDist = dists, radius = thisRadius });
+        }
+
+        // Ensure trunk total length is set before spawning children at the end
+        if (depth == 0 && g > 0f)
+        {
+            trunkTotalLength = g;
+        }
 
         if (depth < maxDepth)
             SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
@@ -485,6 +553,22 @@ public class MyceliumTree3D : MonoBehaviour
     )
     {
         if (branchCount >= maxBranches) return;
+
+        // Check trunkBranchStart01: prevent branches from trunk (depth 0) until threshold is reached
+        if (depth == 0)
+        {
+            // Use trunkTotalLength if available, otherwise estimate based on expected segments
+            float estimatedTrunkLength = trunkTotalLength > 0f 
+                ? trunkTotalLength 
+                : (segmentsPerBranch * segmentLength); // Fallback estimate
+            
+            if (estimatedTrunkLength > 0f)
+            {
+                float trunkProgress = atGlobalDist / estimatedTrunkLength;
+                if (trunkProgress < trunkBranchStart01)
+                    return; // Don't spawn branches from trunk until we've reached the threshold
+            }
+        }
 
         int nextDepth = depth + 1;
 
@@ -665,7 +749,106 @@ public class MyceliumTree3D : MonoBehaviour
         return SafeNormalize(Vector3.Lerp(dir, tangent, thetaSlideStrength), tangent);
     }
 
+    // Target growth helpers
+    private bool IsWithinTargetBounds(Vector3 pos, Transform target)
+    {
+        if (target == null) return false;
 
+        Bounds bounds;
+        Renderer renderer = target.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            bounds = renderer.bounds;
+        }
+        else
+        {
+            Collider collider = target.GetComponent<Collider>();
+            if (collider != null)
+            {
+                bounds = collider.bounds;
+            }
+            else
+            {
+                // Fallback: use a default small radius around the target position
+                bounds = new Bounds(target.position, Vector3.one * 0.5f);
+            }
+        }
 
+        // Expand bounds by spread radius multiplier
+        bounds.Expand((targetSpreadRadiusMultiplier - 1f) * bounds.size.magnitude);
+
+        return bounds.Contains(pos);
+    }
+
+    private float GetTargetAttractionStrength(Vector3 pos, Transform target, Vector3 rootPos)
+    {
+        if (target == null || targetAttractionStrength <= 0f) return 0f;
+
+        float distanceToTarget = Vector3.Distance(pos, target.position);
+        float maxDistance = Vector3.Distance(rootPos, target.position);
+        
+        if (maxDistance < 1e-6f) return 0f;
+
+        // Stronger attraction when far, weaker when close
+        // Use inverse distance ratio, clamped to 0-1
+        float distanceRatio = Mathf.Clamp01(distanceToTarget / maxDistance);
+        
+        // When very close to target, reduce attraction to allow spreading
+        Bounds bounds;
+        Renderer renderer = target.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            bounds = renderer.bounds;
+        }
+        else
+        {
+            Collider collider = target.GetComponent<Collider>();
+            if (collider != null)
+            {
+                bounds = collider.bounds;
+            }
+            else
+            {
+                bounds = new Bounds(target.position, Vector3.one * 0.5f);
+            }
+        }
+
+        float targetRadius = bounds.size.magnitude * 0.5f * targetSpreadRadiusMultiplier;
+        if (distanceToTarget < targetRadius)
+        {
+            // Within target bounds - reduce attraction to allow spreading
+            float closeRatio = distanceToTarget / targetRadius;
+            distanceRatio = Mathf.Lerp(0.1f, distanceRatio, closeRatio);
+        }
+
+        return targetAttractionStrength * distanceRatio;
+    }
+
+    private Vector3 GetTargetSpreadDirection(Vector3 pos, Vector3 currentDir, Transform target)
+    {
+        if (target == null) return currentDir;
+
+        Vector3 toTarget = (target.position - pos).normalized;
+        
+        // Create a perpendicular direction for spreading
+        Vector3 perpendicular = Vector3.Cross(toTarget, currentDir);
+        if (perpendicular.sqrMagnitude < 1e-6f)
+        {
+            // If currentDir is parallel to toTarget, use a different perpendicular
+            perpendicular = AnyPerpendicular(toTarget);
+        }
+        perpendicular = SafeNormalize(perpendicular, AnyPerpendicular(toTarget));
+
+        // Add some randomness to the spreading direction
+        Vector3 randomComponent = RandomOnUnitSphere(rng);
+        randomComponent -= Vector3.Dot(randomComponent, toTarget) * toTarget; // Remove component along toTarget
+        randomComponent = SafeNormalize(randomComponent, perpendicular);
+
+        // Blend perpendicular and random for natural spreading
+        Vector3 spreadDir = SafeNormalize(perpendicular + randomComponent * 0.5f, perpendicular);
+        
+        // Blend with current direction to maintain some forward momentum
+        return SafeNormalize(Vector3.Lerp(currentDir, spreadDir, 0.4f), currentDir);
+    }
 
 }
