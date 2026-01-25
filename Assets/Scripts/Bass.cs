@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Bass : MonoBehaviour
+public class Bass : InstrumentBase
 {
     public void RestartCycle()
     {

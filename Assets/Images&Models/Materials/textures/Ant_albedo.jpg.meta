@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Ant_albedo_0: 3885975662991003613
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

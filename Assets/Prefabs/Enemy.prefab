@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4401555406651782712}
   - component: {fileID: 7272676568918825134}
   - component: {fileID: 1165571201660033455}
+  - component: {fileID: 7271676715420884083}
   - component: {fileID: 781780546248131779}
   - component: {fileID: 135163429229614321}
   m_Layer: 0
@@ -106,6 +107,20 @@ MonoBehaviour:
   target: {fileID: 0}
   moveDuration: 0.5
   moveDistance: 0.5
+--- !u!114 &7271676715420884083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1590698557149931338}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d479581269c8a5c43b774d1705777a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  projectileTag: Projectile
+  hp: 1
 --- !u!136 &781780546248131779
 CapsuleCollider:
   m_ObjectHideFlags: 0

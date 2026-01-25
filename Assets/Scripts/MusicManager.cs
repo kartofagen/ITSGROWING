@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Reflection;
 
 public class MusicManager : MonoBehaviour
 {
@@ -12,8 +13,8 @@ public class MusicManager : MonoBehaviour
         public MonoBehaviour script;
         public AudioClip audioClip;
         public bool enabled = true;
-        [HideInInspector] public AudioSource sourceA;
-        [HideInInspector] public AudioSource sourceB;
+        public AudioSource sourceA;
+        public AudioSource sourceB;
         [HideInInspector] public bool useSourceA = true;
     }
     
@@ -27,21 +28,40 @@ public class MusicManager : MonoBehaviour
     private bool waitingForAudioStart = false;
     private float audioStartTime = 0f;
 
+    private List<PendingUpdate> pendingUpdates = new List<PendingUpdate>();
+
+    private class PendingUpdate
+    {
+        public MonoBehaviour script;
+        public AudioClip clip;
+        public TextAsset midi;
+    }
+
     void Start()
     {
         foreach (var obj in midiControlledObjects)
         {
             if (obj.script == null || obj.audioClip == null) continue;
             
-            obj.sourceA = obj.script.gameObject.AddComponent<AudioSource>();
             obj.sourceA.clip = obj.audioClip;
             obj.sourceA.playOnAwake = false;
             obj.sourceA.loop = false;
             
-            obj.sourceB = obj.script.gameObject.AddComponent<AudioSource>();
             obj.sourceB.clip = obj.audioClip;
             obj.sourceB.playOnAwake = false;
             obj.sourceB.loop = false;
+
+            // Preload initial clips
+            if (obj.sourceA.clip != null)
+            {
+                obj.sourceA.Play();
+                obj.sourceA.Stop();
+            }
+            if (obj.sourceB.clip != null)
+            {
+                obj.sourceB.Play();
+                obj.sourceB.Stop();
+            }
         }
         
         if (autoStart)
@@ -109,6 +129,7 @@ public class MusicManager : MonoBehaviour
         
         if (elapsed >= interval - 1e-3f)
         {
+            ApplyPendingUpdates();
             NotifyAll();
             
             if (audioDelay > 0f)
@@ -125,21 +146,58 @@ public class MusicManager : MonoBehaviour
         }
     }
 
+    private void ApplyPendingUpdates()
+    {
+        foreach (var pending in pendingUpdates)
+        {
+            foreach (var obj in midiControlledObjects)
+            {
+                if (obj.script == pending.script)
+                {
+                    // Update audio clip on the next source
+                    if (pending.clip != null)
+                    {
+                        obj.audioClip = pending.clip;
+                        AudioSource nextSource = obj.useSourceA ? obj.sourceB : obj.sourceA;
+                        nextSource.clip = pending.clip;
+
+                        // Preload the new clip
+                        if (nextSource.clip != null)
+                        {
+                            nextSource.Play();
+                            nextSource.Stop();
+                        }
+                    }
+
+                    // Update MIDI if provided
+                    if (pending.midi != null)
+                    {
+                        TrySetMidiField(obj.script, pending.midi);
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        pendingUpdates.Clear();
+    }
+
     private void PlayCurrentSources()
     {
         foreach (var obj in midiControlledObjects)
         {
             if (!obj.enabled || obj.script == null) continue;
             
-            // Ð§ÐµÑ€ÐµÐ´ÑƒÐµÐ¼ Ð¸ÑÑ‚Ð¾Ñ‡Ð½Ð¸ÐºÐ¸
+            // Flip first
+            obj.useSourceA = !obj.useSourceA;
+            
             AudioSource currentSource = obj.useSourceA ? obj.sourceA : obj.sourceB;
             
             if (currentSource != null)
             {
                 currentSource.Play();
             }
-            
-            obj.useSourceA = !obj.useSourceA;
         }
     }
 
@@ -178,6 +236,36 @@ public class MusicManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void ScheduleUpdateForInstrument(MonoBehaviour script, AudioClip clip, TextAsset midi)
+    {
+        // Add or overwrite pending update for this script
+        pendingUpdates.RemoveAll(p => p.script == script);
+        pendingUpdates.Add(new PendingUpdate { script = script, clip = clip, midi = midi });
+    }
+
+    private bool TrySetMidiField(MonoBehaviour target, TextAsset midiAsset)
+    {
+        var t = target.GetType();
+
+        // Try field named midiFile
+        var field = t.GetField("midiFile", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
+        if (field != null && field.FieldType == typeof(TextAsset))
+        {
+            field.SetValue(target, midiAsset);
+            return true;
+        }
+
+        // Try property named midiFile
+        var prop = t.GetProperty("midiFile", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
+        if (prop != null && prop.CanWrite && prop.PropertyType == typeof(TextAsset))
+        {
+            prop.SetValue(target, midiAsset, null);
+            return true;
+        }
+
+        return false;
     }
 
     void OnApplicationQuit()
