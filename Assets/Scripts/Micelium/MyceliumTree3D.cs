@@ -104,6 +104,11 @@ public class MyceliumTree3D : MonoBehaviour
     private Vector3 rootPosition; // Store root position for target attraction calculations
     private float trunkTotalLength = 0f; // Total length of the trunk (depth 0) for trunkBranchStart01 calculation
 
+    // Constraints
+    private SphereBoundsConstraint sphereConstraint;
+    private HemispherePlaneConstraint hemisphereConstraint;
+    private ThetaLimitConstraint thetaConstraint;
+
     private void Awake()
     {
         mf = GetComponent<MeshFilter>();
@@ -128,6 +133,32 @@ public class MyceliumTree3D : MonoBehaviour
         rootPosition = rootPos; // Store for target attraction calculations
 
         sphereCenter = Vector3.zero; // или transform.TransformPoint(...)
+
+        // Initialize constraints
+        sphereConstraint = useSphereBounds
+            ? new SphereBoundsConstraint(
+                sphereCenter,
+                sphereRadius,
+                surfaceInset,
+                (SphereBoundsConstraint.OutMode)sphereOutMode,
+                slideStrength)
+            : null;
+
+        hemisphereConstraint = useHemisphere
+            ? new HemispherePlaneConstraint(
+                sphereCenter.y,
+                (HemispherePlaneConstraint.PlaneMode)hemispherePlaneMode,
+                planeSlideStrength)
+            : null;
+
+        thetaConstraint = useThetaLimit
+            ? new ThetaLimitConstraint(
+                sphereCenter,
+                thetaMin,
+                thetaMax,
+                (ThetaLimitConstraint.OutMode)thetaOutMode,
+                thetaSlideStrength)
+            : null;
 
         GrowBranch(
             branches,
@@ -399,98 +430,66 @@ public class MyceliumTree3D : MonoBehaviour
 
             Vector3 nextPos = pos + dir * thisSegLen;
 
-            // --- sphere bounds ---
-            if (useSphereBounds)
+            // Apply constraints
+            if (sphereConstraint != null)
             {
-                Vector3 clamped = ProjectInsideSphere(nextPos);
-
-                if ((clamped - nextPos).sqrMagnitude > 1e-12f)
+                var result = sphereConstraint.Apply(pos, nextPos, dir);
+                if (result.shouldStop)
                 {
-                    // Мы вышли за сферу
-                    if (sphereOutMode == SphereOutMode.StopBranch)
+                    if (result.wasViolated)
                     {
-                        // просто заканчиваем ветку
-                        break;
-                    }
-
-                    // Приземляемся на поверхность
-                    nextPos = clamped;
-
-                    if (sphereOutMode == SphereOutMode.ClampToSurfaceStop)
-                    {
-                        // добавим точку и закончим ветку (получится "упёрлась в стенку")
-                        float stepLenStop = Vector3.Distance(pos, nextPos);
-                        pos = nextPos;
+                        // Add the clamped point before stopping
+                        float stepLenStop = Vector3.Distance(pos, result.newPosition);
+                        pos = result.newPosition;
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
-                        break;
                     }
-
-                    // ClampToSurfaceAndSlide: меняем направление на касательное, чтобы дальше расти вдоль сферы
-                    dir = SlideDirectionOnSphere(dir, nextPos);
+                    break;
                 }
+                nextPos = result.newPosition;
+                dir = result.newDirection;
             }
-            // --- end sphere bounds ---
-            // --- hemisphere plane (верхняя часть) ---
-            if (useHemisphere)
+
+            if (hemisphereConstraint != null)
             {
-                float planeY = sphereCenter.y;
-
-                if (nextPos.y < planeY)
+                var result = hemisphereConstraint.Apply(pos, nextPos, dir);
+                if (result.shouldStop)
                 {
-                    if (hemispherePlaneMode == HemispherePlaneMode.StopBranch)
+                    if (result.wasViolated)
                     {
-                        break;
-                    }
-
-                    // Кладём на плоскость
-                    nextPos.y = planeY;
-
-                    if (hemispherePlaneMode == HemispherePlaneMode.ClampStop)
-                    {
-                        float stepLenStop = Vector3.Distance(pos, nextPos);
-                        pos = nextPos;
+                        // Add the clamped point before stopping
+                        float stepLenStop = Vector3.Distance(pos, result.newPosition);
+                        pos = result.newPosition;
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
-                        break;
                     }
-
-                    // Слайдим вдоль плоскости (нормаль вверх)
-                    dir = SlideDirectionOnPlane(dir, Vector3.up);
+                    break;
                 }
+                nextPos = result.newPosition;
+                dir = result.newDirection;
             }
-            // --- end hemisphere plane ---
-            // --- theta (longitude) limit ---
-            if (useThetaLimit)
+
+            if (thetaConstraint != null)
             {
-                float theta = GetTheta(nextPos);
-
-                if (!IsThetaInRange(theta))
+                var result = thetaConstraint.Apply(pos, nextPos, dir);
+                if (result.shouldStop)
                 {
-                    float boundary = NearestThetaBoundary(theta);
-
-                    if (thetaOutMode == ThetaOutMode.StopBranch)
-                        break;
-
-                    nextPos = ClampPointToTheta(nextPos, boundary);
-
-                    if (thetaOutMode == ThetaOutMode.ClampStop)
+                    if (result.wasViolated)
                     {
-                        float stepLenStop = Vector3.Distance(pos, nextPos);
-                        pos = nextPos;
+                        // Add the clamped point before stopping
+                        float stepLenStop = Vector3.Distance(pos, result.newPosition);
+                        pos = result.newPosition;
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
-                        break;
                     }
-
-                    // ClampAndSlide: направляем рост вдоль граничной плоскости
-                    dir = SlideDirectionOnThetaPlane(dir, boundary);
+                    break;
                 }
+                nextPos = result.newPosition;
+                dir = result.newDirection;
             }
-            // --- end theta limit ---
 
             
 
@@ -645,109 +644,6 @@ public class MyceliumTree3D : MonoBehaviour
 
     private static double NextSigned(System.Random r) => r.NextDouble() * 2.0 - 1.0;
     private static float Lerp(float a, float b, float t) => a + (b - a) * t;
-
-    private Vector3 ProjectInsideSphere(Vector3 p)
-    {
-        Vector3 c = sphereCenter;
-        float R = Mathf.Max(1e-6f, sphereRadius - surfaceInset);
-        Vector3 v = p - c;
-        float m = v.magnitude;
-
-        if (m <= R) return p;
-        return c + (v / m) * R; // на поверхности (или чуть внутри)
-    }
-
-    private Vector3 SlideDirectionOnSphere(Vector3 dir, Vector3 posOnOrNearSurface)
-    {
-        // делаем направление касательным к сфере в точке pos
-        Vector3 n = SafeNormalize(posOnOrNearSurface - sphereCenter, Vector3.up); // нормаль сферы
-        Vector3 tangent = dir - Vector3.Dot(dir, n) * n; // убрали радиальную компоненту
-        tangent = SafeNormalize(tangent, AnyPerpendicular(n));
-        // смешиваем: 0 = не трогать, 1 = полностью касательная
-        return SafeNormalize(Vector3.Lerp(dir, tangent, slideStrength), tangent);
-    }
-
-    private Vector3 SlideDirectionOnPlane(Vector3 dir, Vector3 planeNormal)
-    {
-        planeNormal = SafeNormalize(planeNormal, Vector3.up);
-        Vector3 tangent = dir - Vector3.Dot(dir, planeNormal) * planeNormal;
-        tangent = SafeNormalize(tangent, AnyPerpendicular(planeNormal));
-        return SafeNormalize(Vector3.Lerp(dir, tangent, planeSlideStrength), tangent);
-    }
-
-    static float WrapAngle01(float a) // -> [0, 2PI)
-    {
-        float twoPi = Mathf.PI * 2f;
-        a %= twoPi;
-        if (a < 0) a += twoPi;
-        return a;
-    }
-
-    float GetTheta(Vector3 p)
-    {
-        Vector3 v = p - sphereCenter;
-        return WrapAngle01(Mathf.Atan2(v.z, v.x));
-    }
-
-    bool IsThetaInRange(float theta)
-    {
-        // Поддержка случаев когда диапазон "переваливает" через 0 (wrap)
-        float a = WrapAngle01(thetaMin);
-        float b = WrapAngle01(thetaMax);
-        theta = WrapAngle01(theta);
-
-        if (a <= b) return theta >= a && theta <= b;
-        // wrap case, например [300°, 30°]
-        return theta >= a || theta <= b;
-    }
-
-    float NearestThetaBoundary(float theta)
-    {
-        theta = WrapAngle01(theta);
-        float a = WrapAngle01(thetaMin);
-        float b = WrapAngle01(thetaMax);
-
-        // если диапазон без wrap (как у тебя), просто берём ближнюю
-        if (a <= b)
-        {
-            float da = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, a * Mathf.Rad2Deg));
-            float db = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, b * Mathf.Rad2Deg));
-            return (da <= db) ? a : b;
-        }
-
-        // wrap: тоже выбираем ближайшую границу по DeltaAngle
-        float da2 = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, a * Mathf.Rad2Deg));
-        float db2 = Mathf.Abs(Mathf.DeltaAngle(theta * Mathf.Rad2Deg, b * Mathf.Rad2Deg));
-        return (da2 <= db2) ? a : b;
-    }
-
-    Vector3 ClampPointToTheta(Vector3 p, float targetTheta)
-    {
-        Vector3 v = p - sphereCenter;
-        float y = v.y;
-        float rho = Mathf.Sqrt(v.x * v.x + v.z * v.z); // расстояние до оси Y
-
-        float ct = Mathf.Cos(targetTheta);
-        float st = Mathf.Sin(targetTheta);
-
-        Vector3 clamped = new Vector3(rho * ct, y, rho * st);
-        return sphereCenter + clamped;
-    }
-
-    Vector3 SlideDirectionOnThetaPlane(Vector3 dir, float boundaryTheta)
-    {
-        // Плоскость-граница проходит через ось Y и направлена по радиусу r=(cosθ,0,sinθ)
-        // Нормаль к этой плоскости: n = cross(up, r) = (sinθ, 0, -cosθ)
-        float ct = Mathf.Cos(boundaryTheta);
-        float st = Mathf.Sin(boundaryTheta);
-        Vector3 n = new Vector3(st, 0f, -ct); // нормаль плоскости
-
-        // убираем компоненту вдоль нормали, чтобы скользить вдоль плоскости
-        Vector3 tangent = dir - Vector3.Dot(dir, n) * n;
-        tangent = SafeNormalize(tangent, AnyPerpendicular(n));
-
-        return SafeNormalize(Vector3.Lerp(dir, tangent, thetaSlideStrength), tangent);
-    }
 
     // Target growth helpers
     private bool IsWithinTargetBounds(Vector3 pos, Transform target)
