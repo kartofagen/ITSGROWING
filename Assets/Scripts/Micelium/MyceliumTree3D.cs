@@ -75,6 +75,24 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Range(0f, 1f)] public float thetaSlideStrength = 1f;
 
+    [Header("Bounds (Porous Sphere)")]
+    public bool usePorousSphere = false;
+    public Vector3 porousSphereCenter = Vector3.zero;
+    public float porousSphereRadius = 6f;
+    [Range(10, 500)] public int fibonacciPointCount = 50;
+    [Range(0f, 1f)] public float poreDepth = 0.3f;
+
+    public enum PorousSphereOutMode { ClampToSurfaceAndSlide, ClampToSurfaceStop, StopBranch }
+    public PorousSphereOutMode porousSphereOutMode = PorousSphereOutMode.ClampToSurfaceAndSlide;
+
+    [Range(0f, 1f)] public float porousSphereSlideStrength = 1f;
+    public float porousSphereSurfaceInset = 0.001f;
+
+    [Header("Porous Sphere Debug Mesh")]
+    public bool showPorousSphereMesh = false;
+    [Range(10, 100)] public int porousSphereMeshLatitudeSegments = 30;
+    [Range(10, 100)] public int porousSphereMeshLongitudeSegments = 30;
+
     [Header("Target Growth")]
     [Tooltip("Target object that branches will grow towards and surround.")]
     public Transform targetObject;
@@ -108,6 +126,12 @@ public class MyceliumTree3D : MonoBehaviour
     private SphereBoundsConstraint sphereConstraint;
     private HemispherePlaneConstraint hemisphereConstraint;
     private ThetaLimitConstraint thetaConstraint;
+    private PorousSphereConstraint porousSphereConstraint;
+
+    // Debug mesh for porous sphere
+    private MeshFilter porousSphereMeshFilter;
+    private MeshRenderer porousSphereMeshRenderer;
+    private GameObject porousSphereMeshObject;
 
     private void Awake()
     {
@@ -159,6 +183,20 @@ public class MyceliumTree3D : MonoBehaviour
                 (ThetaLimitConstraint.OutMode)thetaOutMode,
                 thetaSlideStrength)
             : null;
+
+        porousSphereConstraint = usePorousSphere
+            ? new PorousSphereConstraint(
+                porousSphereCenter,
+                porousSphereRadius,
+                porousSphereSurfaceInset,
+                (PorousSphereConstraint.OutMode)porousSphereOutMode,
+                porousSphereSlideStrength,
+                fibonacciPointCount,
+                poreDepth)
+            : null;
+
+        // Build debug mesh for porous sphere
+        UpdatePorousSphereDebugMesh();
 
         GrowBranch(
             branches,
@@ -491,6 +529,26 @@ public class MyceliumTree3D : MonoBehaviour
                 dir = result.newDirection;
             }
 
+            if (porousSphereConstraint != null)
+            {
+                var result = porousSphereConstraint.Apply(pos, nextPos, dir);
+                if (result.shouldStop)
+                {
+                    if (result.wasViolated)
+                    {
+                        // Add the clamped point before stopping
+                        float stepLenStop = Vector3.Distance(pos, result.newPosition);
+                        pos = result.newPosition;
+                        g += stepLenStop;
+                        pts.Add(pos);
+                        dists.Add(g);
+                    }
+                    break;
+                }
+                nextPos = result.newPosition;
+                dir = result.newDirection;
+            }
+
             
 
             float stepLen = Vector3.Distance(pos, nextPos);
@@ -745,6 +803,67 @@ public class MyceliumTree3D : MonoBehaviour
         
         // Blend with current direction to maintain some forward momentum
         return SafeNormalize(Vector3.Lerp(currentDir, spreadDir, 0.4f), currentDir);
+    }
+
+    private void UpdatePorousSphereDebugMesh()
+    {
+        // Удаляем старый меш, если он существует
+        if (porousSphereMeshObject != null)
+        {
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+                Destroy(porousSphereMeshObject);
+            else
+                DestroyImmediate(porousSphereMeshObject);
+#else
+            Destroy(porousSphereMeshObject);
+#endif
+            porousSphereMeshObject = null;
+            porousSphereMeshFilter = null;
+            porousSphereMeshRenderer = null;
+        }
+
+        // Создаем новый меш, если нужно
+        if (showPorousSphereMesh && usePorousSphere && porousSphereConstraint != null)
+        {
+            // Создаем дочерний GameObject для визуализации меша
+            porousSphereMeshObject = new GameObject("PorousSphereDebugMesh");
+            porousSphereMeshObject.transform.SetParent(transform);
+            porousSphereMeshObject.transform.localPosition = Vector3.zero;
+            porousSphereMeshObject.transform.localRotation = Quaternion.identity;
+            porousSphereMeshObject.transform.localScale = Vector3.one;
+
+            // Добавляем компоненты
+            porousSphereMeshFilter = porousSphereMeshObject.AddComponent<MeshFilter>();
+            porousSphereMeshRenderer = porousSphereMeshObject.AddComponent<MeshRenderer>();
+
+            // Строим меш используя метод констрейна (единый источник истины)
+            Mesh debugMesh = porousSphereConstraint.BuildSurfaceMesh(
+                porousSphereMeshLatitudeSegments,
+                porousSphereMeshLongitudeSegments
+            );
+
+            porousSphereMeshFilter.mesh = debugMesh;
+
+            // Настраиваем материал (используем стандартный материал или создаем простой)
+            if (porousSphereMeshRenderer.material == null)
+            {
+                Material debugMaterial = new Material(Shader.Find("Standard"));
+                debugMaterial.color = new Color(1f, 0f, 0f, 0.3f); // Красный с прозрачностью
+                debugMaterial.SetFloat("_Mode", 3); // Transparent mode
+                debugMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                debugMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                debugMaterial.SetInt("_ZWrite", 0);
+                debugMaterial.DisableKeyword("_ALPHATEST_ON");
+                debugMaterial.EnableKeyword("_ALPHABLEND_ON");
+                debugMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                debugMaterial.renderQueue = 3000;
+                porousSphereMeshRenderer.material = debugMaterial;
+            }
+
+            // Делаем меш видимым только в Scene view или в Play mode
+            porousSphereMeshRenderer.enabled = true;
+        }
     }
 
 }
