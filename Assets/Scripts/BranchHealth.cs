@@ -31,7 +31,6 @@ public class BranchHealth : MonoBehaviour
     public bool updateInstrumentMidiFile = true;
 
     private HashSet<GameObject> enemiesInside = new HashSet<GameObject>();
-    private Coroutine damageCoroutine;
     private MusicManager musicManager;
     private int appliedLevels = 0; // сколько уровней уже применено (0..N)
     private List<int> selectedOptionPerLevel; // индекс выбранной опции для каждого уровня, -1 если не выбрано
@@ -88,6 +87,7 @@ public class BranchHealth : MonoBehaviour
 
         // initial sync - for start, we can do immediate, but to be consistent, schedule
         ScheduleSync();
+        
         CheckUpgradeStates();
     }
 

@@ -60,6 +60,8 @@ public class EnemyWaves : MonoBehaviour
     {
         musicManager = FindObjectOfType<MusicManager>();
         percussionManager = EnemiesPercussionManager.Instance;
+
+        CheckAggressionStates();
     }
 
     void OnDestroy()

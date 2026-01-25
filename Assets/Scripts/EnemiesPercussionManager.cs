@@ -3,13 +3,19 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Multimedia;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 
 public class EnemiesPercussionManager : InstrumentBase
 {
     private static EnemiesPercussionManager _instance;
     private static bool applicationQuitting = false;
+    
+    [Header("Intro")]
+    [SerializeField] private bool intro = true;
+    [SerializeField] private float introDuration = 1f;
 
+    [Header("Spawn")]
     public static EnemiesPercussionManager Instance
     {
         get
@@ -60,13 +66,22 @@ public class EnemiesPercussionManager : InstrumentBase
         }
 
         initialSpawnRate = spawnRate;
+
+        StartCoroutine(Intro());
+    }
+    
+    private IEnumerator Intro()
+    {
+        yield return new WaitForSeconds(introDuration);
+
+        intro = false;
     }
 
     void Update()
     {
         if (isQuitting) return;
 
-        if (Time.time >= nextSpawnTime)
+        if (Time.time >= nextSpawnTime && !intro)
         {
             SpawnEnemy();
             nextSpawnTime = Time.time + spawnRate;

@@ -74,7 +74,7 @@ public class BranchHealthManager : MonoBehaviour
     {
         if (branches.Count == 0) return;
 
-        if (_totalHealth > criticalThreshold)
+        if (TotalHealth > criticalThreshold)
         {
             audioSource.Stop();
         }
@@ -93,12 +93,13 @@ public class BranchHealthManager : MonoBehaviour
     
     public void UpdateTotalHealth()
     {
-        if (_totalHealth <= criticalThreshold)
+        TotalHealth = branches.Sum(b => b.currentHealth);
+        EnemyWaves.Instance?.SetAggression(TotalHealth);
+        
+        if (TotalHealth <= criticalThreshold)
         {
             audioSource.Play();
         }
-        TotalHealth = branches.Sum(b => b.currentHealth);
-        EnemyWaves.Instance?.SetAggression(TotalHealth);
     }
 
     void OnDestroy()

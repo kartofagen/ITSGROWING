@@ -168,7 +168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f02550ac83d88da4796ab3a791c85053, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  criticalThreshold: 10
+  criticalThreshold: 9
   _totalHealth: 0
 --- !u!82 &12406710
 AudioSource:
@@ -667,6 +667,71 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1001 &349250434
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1165571201660033455, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: target
+      value: 
+      objectReference: {fileID: 12406708}
+    - target: {fileID: 1590698557149931338, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_Name
+      value: Enemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -14
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4401555406651782712, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 7271676715420884083, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
 --- !u!1 &371136134
 GameObject:
   m_ObjectHideFlags: 0
@@ -1273,8 +1338,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 4.41
-  m_Center: {x: 0.27859688, y: 4.297146, z: 0}
+  m_Radius: 2.5
+  m_Center: {x: 0.278614, y: 2.084452, z: 0}
 --- !u!1 &751977352
 GameObject:
   m_ObjectHideFlags: 0
@@ -1533,7 +1598,7 @@ MonoBehaviour:
   midiFile: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
   projectilePrefab: {fileID: 4077492564023948726, guid: e7f1554a020ea0d43ad3b04c86e02d1d, type: 3}
   attackAngle: 120
-  spawnDistance: 2
+  spawnDistance: 1
   autoDetectNoteRange: 1
   minMidiNote: 21
   maxMidiNote: 108
@@ -1612,14 +1677,6 @@ MonoBehaviour:
   maxHealth: 9999
   damageFromEnemy: 1
   upgradeLevels:
-  - threshold: 0
-    options:
-    - optionName: 
-      initialMelody: {fileID: 0}
-      initialMidiAsset: {fileID: 0}
-      melody: {fileID: 8300000, guid: 9bf1cbb3ddc2296438bd7ac26449f7dd, type: 3}
-      midiAsset: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
-      stateId: -1
   - threshold: 10
     options:
     - optionName: 
@@ -1628,7 +1685,7 @@ MonoBehaviour:
       melody: {fileID: 8300000, guid: fcc9f50f406e210429323b27f2617737, type: 3}
       midiAsset: {fileID: 4900000, guid: 0977a9b0f7bf1d8429d378e7531c8038, type: 3}
       stateId: 0
-  - threshold: 15
+  - threshold: 13
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1690,8 +1747,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 4.410001
-  m_Center: {x: 0.27859694, y: 4.297147, z: 0}
+  m_Radius: 2.5
+  m_Center: {x: 0.27859688, y: 2.5427022, z: 0}
 --- !u!1 &857617235
 GameObject:
   m_ObjectHideFlags: 0
@@ -2043,6 +2100,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   midiFile: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
+  intro: 1
+  introDuration: 10.64
   enemyPrefab: {fileID: 1590698557149931338, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
   spawnRate: 5
   spawnDistance: 10
@@ -2648,3 +2707,4 @@ SceneRoots:
   - {fileID: 751977354}
   - {fileID: 12406708}
   - {fileID: 1746083193}
+  - {fileID: 349250434}

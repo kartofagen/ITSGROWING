@@ -98,8 +98,8 @@ public class Lead : InstrumentBase
         int minNote = notes.Min(n => n.NoteNumber);
         int maxNote = notes.Max(n => n.NoteNumber);
         
-        minMidiNote = Mathf.Max(0, minNote - 1);
-        maxMidiNote = Mathf.Min(127, maxNote + 1);
+        minMidiNote = Mathf.Max(0, minNote - 5);
+        maxMidiNote = Mathf.Min(127, maxNote + 5);
     }
 
     private void OnEventPlayed(object sender, MidiEventPlayedEventArgs e)
