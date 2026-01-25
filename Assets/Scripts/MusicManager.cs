@@ -3,25 +3,47 @@ using System.Collections.Generic;
 
 public class MusicManager : MonoBehaviour
 {
-    [SerializeField] private AudioClip baseClip;
-    [SerializeField] private AudioSource[] sources;
-
+    [SerializeField] private float interval;
+    [SerializeField] private float audioDelay = 0f;
+    
     [System.Serializable]
     public class MidiControlledObject
     {
         public MonoBehaviour script;
+        public AudioClip audioClip;
+        public bool enabled = true;
+        [HideInInspector] public AudioSource sourceA;
+        [HideInInspector] public AudioSource sourceB;
+        [HideInInspector] public bool useSourceA = true;
     }
-
+    
     public List<MidiControlledObject> midiControlledObjects = new List<MidiControlledObject>();
     public bool autoStart = true;
-
+    
     private float lastStartTime = 0f;
-    private float interval = 0f;
     private bool running = false;
     private bool isQuitting = false;
+    private bool firstCycle = true;
+    private bool waitingForAudioStart = false;
+    private float audioStartTime = 0f;
 
     void Start()
     {
+        foreach (var obj in midiControlledObjects)
+        {
+            if (obj.script == null || obj.audioClip == null) continue;
+            
+            obj.sourceA = obj.script.gameObject.AddComponent<AudioSource>();
+            obj.sourceA.clip = obj.audioClip;
+            obj.sourceA.playOnAwake = false;
+            obj.sourceA.loop = false;
+            
+            obj.sourceB = obj.script.gameObject.AddComponent<AudioSource>();
+            obj.sourceB.clip = obj.audioClip;
+            obj.sourceB.playOnAwake = false;
+            obj.sourceB.loop = false;
+        }
+        
         if (autoStart)
             StartLoop();
     }
@@ -29,42 +51,38 @@ public class MusicManager : MonoBehaviour
     void OnEnable()
     {
         lastStartTime = 0f;
+        firstCycle = true;
+        waitingForAudioStart = false;
     }
 
     public void StartLoop()
     {
         if (isQuitting) return;
-
-        running = true;
-        interval = baseClip.length;
-
-        // Даем объектам время на инициализацию перед первым рестартом
-        StartCoroutine(DelayedFirstNotify());
-
-        lastStartTime = Time.time;
-        foreach (AudioSource source in sources)
-        {
-            source.Play();
-        }
-    }
-
-    private System.Collections.IEnumerator DelayedFirstNotify()
-    {
-        // Ждем один кадр, чтобы все Start() методы завершились
-        yield return null;
         
-        if (!isQuitting)
+        running = true;
+        lastStartTime = Time.time;
+        firstCycle = true;
+        
+        if (audioDelay > 0f)
         {
-            NotifyAll();
+            waitingForAudioStart = true;
+            audioStartTime = Time.time + audioDelay;
+        }
+        else
+        {
+            PlayCurrentSources();
         }
     }
 
     public void StopLoop()
     {
         running = false;
-        foreach (AudioSource source in sources)
+        waitingForAudioStart = false;
+        
+        foreach (var obj in midiControlledObjects)
         {
-            source.Stop();
+            if (obj.sourceA != null) obj.sourceA.Stop();
+            if (obj.sourceB != null) obj.sourceB.Stop();
         }
     }
 
@@ -73,32 +91,66 @@ public class MusicManager : MonoBehaviour
         if (!running || isQuitting)
             return;
 
-        TimerBasedUpdate();
-    }
-
-    private void TimerBasedUpdate()
-    {
         float now = Time.time;
-        if (now >= lastStartTime + interval - 1e-3f)
+        
+        if (waitingForAudioStart && now >= audioStartTime)
+        {
+            PlayCurrentSources();
+            waitingForAudioStart = false;
+        }
+        
+        float elapsed = now - lastStartTime;
+        
+        if (firstCycle && elapsed > Time.deltaTime)
+        {
+            firstCycle = false;
+            NotifyAll();
+        }
+        
+        if (elapsed >= interval - 1e-3f)
         {
             NotifyAll();
-
-            foreach (AudioSource source in sources)
+            
+            if (audioDelay > 0f)
             {
-                source.Play();
+                waitingForAudioStart = true;
+                audioStartTime = now + audioDelay;
             }
+            else
+            {
+                PlayCurrentSources();
+            }
+            
             lastStartTime = now;
+        }
+    }
+
+    private void PlayCurrentSources()
+    {
+        foreach (var obj in midiControlledObjects)
+        {
+            if (!obj.enabled || obj.script == null) continue;
+            
+            // Ð§ÐµÑ€ÐµÐ´ÑƒÐµÐ¼ Ð¸ÑÑ‚Ð¾Ñ‡Ð½Ð¸ÐºÐ¸
+            AudioSource currentSource = obj.useSourceA ? obj.sourceA : obj.sourceB;
+            
+            if (currentSource != null)
+            {
+                currentSource.Play();
+            }
+            
+            obj.useSourceA = !obj.useSourceA;
         }
     }
 
     private void NotifyAll()
     {
         if (isQuitting) return;
-
+        
         foreach (var obj in midiControlledObjects)
         {
-            if (obj.script == null) continue;
-
+            if (!obj.enabled || obj.script == null) continue;
+            
             try
             {
                 if (obj.script is Lead lead)
@@ -131,7 +183,6 @@ public class MusicManager : MonoBehaviour
     void OnApplicationQuit()
     {
         isQuitting = true;
-        StopAllCoroutines();
         StopLoop();
     }
 
@@ -146,6 +197,5 @@ public class MusicManager : MonoBehaviour
     void OnDestroy()
     {
         isQuitting = true;
-        StopAllCoroutines();
     }
 }
