@@ -93,6 +93,15 @@ public class MyceliumTree3D : MonoBehaviour
     [Range(10, 100)] public int porousSphereMeshLatitudeSegments = 30;
     [Range(10, 100)] public int porousSphereMeshLongitudeSegments = 30;
 
+    [Header("Bounds (Perpendicular Shell)")]
+    public bool usePerpendicularShell = false;
+    public Vector3 perpendicularShellCenter = Vector3.zero;
+    public float perpendicularShellInnerRadius = 3f;
+    public float perpendicularShellOuterRadius = 6f;
+    [Range(0f, 1f)] public float perpendicularShellSlideStrength = 1f;
+    [Range(0f, 45f)] public float perpendicularShellWiggleDegrees = 15f;
+    public float perpendicularShellSurfaceInset = 0.001f;
+
     [Header("Target Growth")]
     [Tooltip("Target object that branches will grow towards and surround.")]
     public Transform targetObject;
@@ -127,6 +136,7 @@ public class MyceliumTree3D : MonoBehaviour
     private HemispherePlaneConstraint hemisphereConstraint;
     private ThetaLimitConstraint thetaConstraint;
     private PorousSphereConstraint porousSphereConstraint;
+    private PerpendicularShellConstraint perpendicularShellConstraint;
 
     // Debug mesh for porous sphere
     private MeshFilter porousSphereMeshFilter;
@@ -195,6 +205,15 @@ public class MyceliumTree3D : MonoBehaviour
                 poreDepth)
             : null;
 
+        perpendicularShellConstraint = usePerpendicularShell
+            ? new PerpendicularShellConstraint(
+                perpendicularShellCenter,
+                perpendicularShellInnerRadius,
+                perpendicularShellOuterRadius,
+                perpendicularShellSurfaceInset,
+                perpendicularShellSlideStrength)
+            : null;
+
         // Build debug mesh for porous sphere
         UpdatePorousSphereDebugMesh();
 
@@ -206,7 +225,9 @@ public class MyceliumTree3D : MonoBehaviour
             depth: 0,
             thisRadius: Mathf.Max(0.0001f, radius),
             thisSegments: segmentsPerBranch,
-            thisSegLen: segmentLength
+            thisSegLen: segmentLength,
+            extraConstraint: null,
+            allowPerpendicularSpawn: true
         );
 
         // Нормализуем глобальную дистанцию 0..1
@@ -402,7 +423,9 @@ public class MyceliumTree3D : MonoBehaviour
         int depth,
         float thisRadius,
         int thisSegments,
-        float thisSegLen
+        float thisSegLen,
+        BranchConstraint extraConstraint,
+        bool allowPerpendicularSpawn
     )
     {
         if (branchCount >= maxBranches) return;
@@ -423,6 +446,7 @@ public class MyceliumTree3D : MonoBehaviour
         float g = startGlobalDist;
 
         Vector3 localUp = AnyPerpendicular(dir);
+        bool spawnedPerpendicular = false;
 
         for (int i = 0; i < thisSegments; i++)
         {
@@ -549,7 +573,81 @@ public class MyceliumTree3D : MonoBehaviour
                 dir = result.newDirection;
             }
 
-            
+            if (extraConstraint != null)
+            {
+                var result = extraConstraint.Apply(pos, nextPos, dir);
+                if (result.shouldStop)
+                {
+                    if (result.wasViolated)
+                    {
+                        // Add the clamped point before stopping
+                        float stepLenStop = Vector3.Distance(pos, result.newPosition);
+                        pos = result.newPosition;
+                        g += stepLenStop;
+                        pts.Add(pos);
+                        dists.Add(g);
+                    }
+                    break;
+                }
+                nextPos = result.newPosition;
+                dir = result.newDirection;
+            }
+
+            if (allowPerpendicularSpawn && usePerpendicularShell && perpendicularShellConstraint != null
+                && !spawnedPerpendicular && depth < maxDepth)
+            {
+                float innerR = Mathf.Max(0f, perpendicularShellInnerRadius);
+                if (innerR > 1e-6f)
+                {
+                    Vector3 shellCenter = perpendicularShellCenter;
+                    float currentR = (pos - shellCenter).magnitude;
+                    float nextR = (nextPos - shellCenter).magnitude;
+
+                    if (currentR < innerR && nextR >= innerR)
+                    {
+                        if (TryGetSegmentSphereIntersection(pos, nextPos, shellCenter, innerR, out Vector3 hit))
+                        {
+                            Vector3 n = SafeNormalize(hit - shellCenter, Vector3.up);
+                            Vector3 radialDir = n;
+
+                            if (perpendicularShellWiggleDegrees > 0f)
+                                radialDir = DeviateDirection(radialDir, perpendicularShellWiggleDegrees);
+
+                            if (branchCount < maxBranches)
+                            {
+                                int childDepth = depth + 1;
+
+                                float childRadius = thisRadius * radiusDecay * Lerp(0.95f, 1.05f, (float)rng.NextDouble());
+                                float childSegLen = thisSegLen * lengthDecay * Lerp(0.9f, 1.1f, (float)rng.NextDouble());
+                                int childSegments = Mathf.Max(6, Mathf.RoundToInt(thisSegments * lengthDecay));
+
+                                if (depth <= baseBoostDepth)
+                                {
+                                    childSegments = Mathf.Max(childSegments, baseMinSegments);
+                                    childSegLen *= baseSegLenBoost;
+                                }
+
+                                float hitDist = Vector3.Distance(pos, hit);
+                                float childStartDist = g + hitDist;
+
+                                GrowBranch(
+                                    outBranches,
+                                    hit,
+                                    radialDir,
+                                    childStartDist,
+                                    childDepth,
+                                    childRadius,
+                                    childSegments,
+                                    childSegLen,
+                                    perpendicularShellConstraint,
+                                    allowPerpendicularSpawn: false
+                                );
+                                spawnedPerpendicular = true;
+                            }
+                        }
+                    }
+                }
+            }
 
             float stepLen = Vector3.Distance(pos, nextPos);
             pos = nextPos;
@@ -641,24 +739,56 @@ public class MyceliumTree3D : MonoBehaviour
 
         // продолжение
         Vector3 d0 = DeviateDirection(parentDir, branchSpreadDegrees * 0.45f);
-        GrowBranch(outBranches, atPos, d0, atGlobalDist, nextDepth, childRadius, childSegments, childSegLen);
+        GrowBranch(outBranches, atPos, d0, atGlobalDist, nextDepth, childRadius, childSegments, childSegLen, null, true);
 
         // вторая ветка
         if (rng.NextDouble() < extraBranchChance && branchCount < maxBranches)
         {
             Vector3 d1 = DeviateDirection(parentDir, branchSpreadDegrees);
-            GrowBranch(outBranches, atPos, d1, atGlobalDist, nextDepth, childRadius * 0.95f, childSegments, childSegLen);
+            GrowBranch(outBranches, atPos, d1, atGlobalDist, nextDepth, childRadius * 0.95f, childSegments, childSegLen, null, true);
         }
 
         // третья
         if (rng.NextDouble() < thirdBranchChance && branchCount < maxBranches)
         {
             Vector3 d2 = DeviateDirection(parentDir, branchSpreadDegrees * 1.25f);
-            GrowBranch(outBranches, atPos, d2, atGlobalDist, nextDepth, childRadius * 0.9f, childSegments - 2, childSegLen);
+            GrowBranch(outBranches, atPos, d2, atGlobalDist, nextDepth, childRadius * 0.9f, childSegments - 2, childSegLen, null, true);
         }
     }
 
     // helpers
+    private static bool TryGetSegmentSphereIntersection(
+        Vector3 p0,
+        Vector3 p1,
+        Vector3 center,
+        float radius,
+        out Vector3 hit)
+    {
+        hit = Vector3.zero;
+        if (radius <= 0f) return false;
+
+        Vector3 d = p1 - p0;
+        float a = Vector3.Dot(d, d);
+        if (a < 1e-12f) return false;
+
+        Vector3 m = p0 - center;
+        float b = 2f * Vector3.Dot(m, d);
+        float c = Vector3.Dot(m, m) - radius * radius;
+
+        float disc = b * b - 4f * a * c;
+        if (disc < 0f) return false;
+
+        float sqrtDisc = Mathf.Sqrt(disc);
+        float t1 = (-b - sqrtDisc) / (2f * a);
+        float t2 = (-b + sqrtDisc) / (2f * a);
+
+        float t = (t1 >= 0f && t1 <= 1f) ? t1 : (t2 >= 0f && t2 <= 1f ? t2 : -1f);
+        if (t < 0f) return false;
+
+        hit = p0 + d * t;
+        return true;
+    }
+
     private Vector3 DeviateDirection(Vector3 dir, float maxDegrees)
     {
         dir = SafeNormalize(dir, Vector3.up);

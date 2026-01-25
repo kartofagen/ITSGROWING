@@ -185,14 +185,14 @@ MonoBehaviour:
   maxBranches: 1792
   radiusDecay: 0.95
   lengthDecay: 0.98
-  trunkBranchStart01: 0.25
-  baseMinSegments: 18
-  baseBoostDepth: 2
-  baseSegLenBoost: 1.25
+  trunkBranchStart01: 0
+  baseMinSegments: 2
+  baseBoostDepth: 0
+  baseSegLenBoost: 1
   useSphereBounds: 0
   sphereCenter: {x: 0, y: 0, z: 0}
-  sphereRadius: 6
-  sphereOutMode: 0
+  sphereRadius: 8
+  sphereOutMode: 1
   slideStrength: 0.081
   surfaceInset: 0.001
   useHemisphere: 1
@@ -214,6 +214,13 @@ MonoBehaviour:
   showPorousSphereMesh: 0
   porousSphereMeshLatitudeSegments: 100
   porousSphereMeshLongitudeSegments: 100
+  usePerpendicularShell: 0
+  perpendicularShellCenter: {x: 0, y: 0, z: 0}
+  perpendicularShellInnerRadius: 3
+  perpendicularShellOuterRadius: 6
+  perpendicularShellSlideStrength: 1
+  perpendicularShellWiggleDegrees: 15
+  perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
   targetSpreadRadiusMultiplier: 1.5
@@ -245,7 +252,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 43b2a6b6a518147dda93a455b7181a97, type: 2}
+  - {fileID: 2100000, guid: 3bb2a704e94e8a8968d3a1c2e9f541c6, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -385,6 +392,13 @@ MonoBehaviour:
   showPorousSphereMesh: 0
   porousSphereMeshLatitudeSegments: 30
   porousSphereMeshLongitudeSegments: 30
+  usePerpendicularShell: 0
+  perpendicularShellCenter: {x: 0, y: 0, z: 0}
+  perpendicularShellInnerRadius: 3
+  perpendicularShellOuterRadius: 6
+  perpendicularShellSlideStrength: 1
+  perpendicularShellWiggleDegrees: 15
+  perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 1903464484}
   targetAttractionStrength: 0.7
   targetSpreadRadiusMultiplier: 1
@@ -588,7 +602,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &635407935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -649,8 +663,8 @@ MonoBehaviour:
   hemispherePlaneMode: 0
   planeSlideStrength: 1
   useThetaLimit: 1
-  thetaMin: 2.094395
-  thetaMax: 4
+  thetaMin: 0
+  thetaMax: 2.094395
   thetaOutMode: 0
   thetaSlideStrength: 1
   usePorousSphere: 0
@@ -664,6 +678,13 @@ MonoBehaviour:
   showPorousSphereMesh: 0
   porousSphereMeshLatitudeSegments: 30
   porousSphereMeshLongitudeSegments: 30
+  usePerpendicularShell: 0
+  perpendicularShellCenter: {x: 0, y: 0, z: 0}
+  perpendicularShellInnerRadius: 3
+  perpendicularShellOuterRadius: 6
+  perpendicularShellSlideStrength: 1
+  perpendicularShellWiggleDegrees: 15
+  perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
   targetSpreadRadiusMultiplier: 1.5
@@ -1149,6 +1170,184 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1ba5e125dbe932a3c932005c39662ff5, type: 3}
+--- !u!1 &1454765694
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1454765699}
+  - component: {fileID: 1454765698}
+  - component: {fileID: 1454765697}
+  - component: {fileID: 1454765696}
+  - component: {fileID: 1454765695}
+  m_Layer: 0
+  m_Name: MyceliumEaterBase
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1454765695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454765694}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e40367b1fb9679bea9885c436c7614f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  grow: 0
+  growSpeed: 0.25
+  playOnStart: 1
+  loop: 0
+  lightPrefab: {fileID: 0}
+  maxLightIntensity: 100
+  maxLightRange: 20
+  syncLightColorWithShader: 1
+--- !u!114 &1454765696
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454765694}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c55f85aa1edcd29068fb89d1661711f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  radius: 0.04
+  sides: 6
+  capStart: 1
+  capEnd: 1
+  maxDepth: 10
+  segmentsPerBranch: 96
+  segmentLength: 0.08
+  wiggle: 0.167
+  branchSpreadDegrees: 35
+  extraBranchChance: 1
+  thirdBranchChance: 1
+  maxBranches: 1792
+  radiusDecay: 0.95
+  lengthDecay: 0.98
+  trunkBranchStart01: 0
+  baseMinSegments: 2
+  baseBoostDepth: 0
+  baseSegLenBoost: 1
+  useSphereBounds: 1
+  sphereCenter: {x: 0, y: 0, z: 0}
+  sphereRadius: 6.2
+  sphereOutMode: 2
+  slideStrength: 0.081
+  surfaceInset: 0.001
+  useHemisphere: 1
+  hemispherePlaneMode: 2
+  planeSlideStrength: 0
+  useThetaLimit: 1
+  thetaMin: 4
+  thetaMax: 6.28
+  thetaOutMode: 0
+  thetaSlideStrength: 1
+  usePorousSphere: 0
+  porousSphereCenter: {x: 0, y: 0, z: 0}
+  porousSphereRadius: 6
+  fibonacciPointCount: 69
+  poreDepth: 0.726
+  porousSphereOutMode: 0
+  porousSphereSlideStrength: 1
+  porousSphereSurfaceInset: 0.001
+  showPorousSphereMesh: 0
+  porousSphereMeshLatitudeSegments: 100
+  porousSphereMeshLongitudeSegments: 100
+  usePerpendicularShell: 1
+  perpendicularShellCenter: {x: 0, y: 0, z: 0}
+  perpendicularShellInnerRadius: 2
+  perpendicularShellOuterRadius: 6.2
+  perpendicularShellSlideStrength: 1
+  perpendicularShellWiggleDegrees: 15
+  perpendicularShellSurfaceInset: 0.001
+  targetObject: {fileID: 0}
+  targetAttractionStrength: 0.7
+  targetSpreadRadiusMultiplier: 1.5
+  lightCount: 0
+  lightSpots: []
+  seed: 12345
+  frameMode: 0
+  rebuildOnPlay: 1
+--- !u!23 &1454765697
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454765694}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: de1e1e372448fa3f3b14d23edf923d9e, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1454765698
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454765694}
+  m_Mesh: {fileID: 0}
+--- !u!4 &1454765699
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454765694}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1903464484 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e951c523f6cf41617a53a70f37c8a3dd, type: 3}
@@ -1283,6 +1482,7 @@ SceneRoots:
   - {fileID: 1907110224}
   - {fileID: 635407939}
   - {fileID: 79056507}
+  - {fileID: 1454765699}
   - {fileID: 368850551}
   - {fileID: 903677029}
   - {fileID: 947999067}

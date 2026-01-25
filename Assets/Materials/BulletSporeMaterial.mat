@@ -22,7 +22,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: BulletSporeMaterial
   m_Shader: {fileID: 4800000, guid: 3b66faf44c1842020a07b8d0fba61c43, type: 3}
-  m_Parent: {fileID: 2100000, guid: de1e1e372448fa3f3b14d23edf923d9e, type: 2}
+  m_Parent: {fileID: 2100000, guid: 3bb2a704e94e8a8968d3a1c2e9f541c6, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords:
@@ -40,29 +40,16 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BlackOutlineEnabled: 1
-    - _BlackOutlineGlowIntensity: 0
-    - _BlackOutlineThreshold: 0.322
-    - _BodyIntensity: 2.63
-    - _Metallic: 0.649
-    - _OutlineAffectsAlpha: 0.801
-    - _OutlineIntensity: 5.79
-    - _OutlinePassWidth: 0
-    - _OutlinePower: 8.77
-    - _OutlineSoftness: 0.444
-    - _OutlineThreshold: 0.848
-    - _OutlineWidth: 8.65
-    - _Smoothness: 0.802
-    - _SoftClip: 0.017
-    - _SwayWorldScale: 1.97
-    - _TipIntensity: 1.17
-    - _TipWidth: 0.013
+    - _BodyIntensity: 1
+    - _OutlineIntensity: 1.5
+    - _OutlinePower: 4
+    - _OutlineSoftness: 0.08
+    - _OutlineThreshold: 0.3
+    - _TipIntensity: 2
+    - _TipWidth: 0.03
     m_Colors:
-    - _BaseColor: {r: 0, g: 0, b: 0, a: 1}
-    - _BlackOutlineGlowColor: {r: 0, g: 0, b: 0, a: 1}
-    - _Color: {r: 1, g: 0.64705884, b: 0.5607843, a: 1}
+    - _BaseColor: {r: 0.7, g: 1, b: 0.9, a: 1}
     - _GlowColor: {r: 0.2, g: 1, b: 0.7, a: 1}
-    - _OutlineColor: {r: 1, g: 1, b: 1, a: 1}
-    - _OutlinePassColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0.049999982, g: 0.09999997, b: 0.079999976, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
