@@ -6,6 +6,16 @@ public class BranchHealthManager : MonoBehaviour
 {
     private static BranchHealthManager _instance;
     private static bool applicationQuitting = false;
+    
+    [Header("Critical State Music")]
+    public int criticalThreshold = 10;
+    
+    private AudioSource audioSource;
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+    }
 
     public static BranchHealthManager Instance
     {
@@ -64,6 +74,11 @@ public class BranchHealthManager : MonoBehaviour
     {
         if (branches.Count == 0) return;
 
+        if (_totalHealth > criticalThreshold)
+        {
+            audioSource.Stop();
+        }
+
         // Find the minimum health
         int minHealth = branches.Min(b => b.currentHealth);
 
@@ -78,6 +93,10 @@ public class BranchHealthManager : MonoBehaviour
     
     public void UpdateTotalHealth()
     {
+        if (_totalHealth <= criticalThreshold)
+        {
+            audioSource.Play();
+        }
         TotalHealth = branches.Sum(b => b.currentHealth);
         EnemyWaves.Instance?.SetAggression(TotalHealth);
     }

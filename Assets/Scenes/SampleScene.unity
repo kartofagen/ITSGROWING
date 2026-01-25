@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 12406708}
   - component: {fileID: 12406709}
+  - component: {fileID: 12406710}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -167,7 +168,105 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f02550ac83d88da4796ab3a791c85053, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  criticalThreshold: 10
   _totalHealth: 0
+--- !u!82 &12406710
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12406706}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 8300000, guid: 9bf1cbb3ddc2296438bd7ac26449f7dd, type: 3}
+  m_Resource: {fileID: 8300000, guid: 9bf1cbb3ddc2296438bd7ac26449f7dd, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &37560861
 GameObject:
   m_ObjectHideFlags: 0
@@ -1132,7 +1231,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 717290464}
-  initialHealth: 30
+  initialHealth: 10
   currentHealth: 0
   maxHealth: 9999
   damageFromEnemy: 1
@@ -1237,7 +1336,7 @@ MonoBehaviour:
     useSourceA: 1
   - script: {fileID: 857617237}
     audioClip: {fileID: 0}
-    enabled: 0
+    enabled: 1
     sourceA: {fileID: 1867140540}
     sourceB: {fileID: 1805437313}
     useSourceA: 1
@@ -1248,7 +1347,7 @@ MonoBehaviour:
     sourceB: {fileID: 37560862}
     useSourceA: 1
   - script: {fileID: 1746083192}
-    audioClip: {fileID: 8300000, guid: 3749ea491f6752f428e2ff8e271ccb1a, type: 3}
+    audioClip: {fileID: 0}
     enabled: 1
     sourceA: {fileID: 343288307}
     sourceB: {fileID: 37560862}
@@ -1433,7 +1532,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   midiFile: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
   projectilePrefab: {fileID: 4077492564023948726, guid: e7f1554a020ea0d43ad3b04c86e02d1d, type: 3}
-  attackRate: 1
   attackAngle: 120
   spawnDistance: 2
   autoDetectNoteRange: 1
@@ -1509,26 +1607,40 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 797789099}
-  initialHealth: 20
+  initialHealth: 10
   currentHealth: 0
   maxHealth: 9999
   damageFromEnemy: 1
   upgradeLevels:
+  - threshold: 0
+    options:
+    - optionName: 
+      initialMelody: {fileID: 0}
+      initialMidiAsset: {fileID: 0}
+      melody: {fileID: 8300000, guid: 9bf1cbb3ddc2296438bd7ac26449f7dd, type: 3}
+      midiAsset: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
+      stateId: -1
   - threshold: 10
     options:
     - optionName: 
-      melody: {fileID: 8300000, guid: d3a186699549daf439fdf883d33d06be, type: 3}
-      midiAsset: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
+      initialMelody: {fileID: 8300000, guid: d3a186699549daf439fdf883d33d06be, type: 3}
+      initialMidiAsset: {fileID: 4900000, guid: 304d860961eb86c42a93f95a99031989, type: 3}
+      melody: {fileID: 8300000, guid: fcc9f50f406e210429323b27f2617737, type: 3}
+      midiAsset: {fileID: 4900000, guid: 0977a9b0f7bf1d8429d378e7531c8038, type: 3}
       stateId: 0
-  - threshold: 20
+  - threshold: 15
     options:
     - optionName: 
+      initialMelody: {fileID: 0}
+      initialMidiAsset: {fileID: 0}
       melody: {fileID: 8300000, guid: 45bcc942f6db1184d902b94e78620540, type: 3}
       midiAsset: {fileID: 4900000, guid: 4ce3605d28d333a43b2e088e7ef2e728, type: 3}
       stateId: 1
   - threshold: 30
     options:
     - optionName: 
+      initialMelody: {fileID: 0}
+      initialMidiAsset: {fileID: 0}
       melody: {fileID: 8300000, guid: f0059c150d9ef3244ab09d77180b8ebc, type: 3}
       midiAsset: {fileID: 4900000, guid: 8a7de303621a5fd40adf3582734501c9, type: 3}
       stateId: 2
@@ -1630,6 +1742,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   midiFile: {fileID: 0}
+  shieldHealthPerLevel: 0a000000140000001e000000
+  currentShieldHealth: 0
+  currentLevel: 0
+  maxShieldHealth: 0
 --- !u!212 &857617238
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -1699,11 +1815,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 857617237}
-  initialHealth: 30
+  initialHealth: 10
   currentHealth: 0
   maxHealth: 9999
   damageFromEnemy: 1
-  upgradeLevels: []
+  upgradeLevels:
+  - threshold: 10
+    options: []
+  - threshold: 20
+    options:
+    - optionName: 
+      initialMelody: {fileID: 0}
+      initialMidiAsset: {fileID: 0}
+      melody: {fileID: 8300000, guid: 825b5d0a40ebf974eb004069b7078546, type: 3}
+      midiAsset: {fileID: 0}
+      stateId: 1
+  - threshold: 30
+    options:
+    - optionName: 
+      initialMelody: {fileID: 0}
+      initialMidiAsset: {fileID: 0}
+      melody: {fileID: 8300000, guid: dbeb15dfbbe8cb840aef5cd944a936e6, type: 3}
+      midiAsset: {fileID: 0}
+      stateId: 2
   animator: {fileID: 857617240}
   animatorLevelIntParam: UpgradeLevel
   animatorUpgradeTrigger: OnUpgrade
@@ -1731,8 +1865,8 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!135 &857617241
-SphereCollider:
+--- !u!136 &857617241
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -1749,9 +1883,11 @@ SphereCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 4.4100018
-  m_Center: {x: 0.278597, y: 4.2971478, z: 0}
+  serializedVersion: 2
+  m_Radius: 5.62977
+  m_Height: 14
+  m_Direction: 0
+  m_Center: {x: 0.000015535912, y: 5.629748, z: 0}
 --- !u!1 &892302062
 GameObject:
   m_ObjectHideFlags: 0
@@ -1908,7 +2044,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   midiFile: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
   enemyPrefab: {fileID: 1590698557149931338, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
-  spawnRate: 3
+  spawnRate: 5
   spawnDistance: 10
   playOffset: 0
   moveDistance: 0.5
@@ -1942,12 +2078,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   aggressionLevels:
   - threshold: 30
+    initialMelody: {fileID: 0}
+    initialMidiAsset: {fileID: 0}
     melody: {fileID: 8300000, guid: 3749ea491f6752f428e2ff8e271ccb1a, type: 3}
     midiAsset: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
-  - threshold: 60
+  - threshold: 50
+    initialMelody: {fileID: 0}
+    initialMidiAsset: {fileID: 0}
     melody: {fileID: 8300000, guid: 6484b4d4a069047439bed9cfd9e35fdf, type: 3}
     midiAsset: {fileID: 4900000, guid: 629952917cb4a584786bf6e8a0439a78, type: 3}
-  - threshold: 90
+  - threshold: 100
+    initialMelody: {fileID: 0}
+    initialMidiAsset: {fileID: 0}
     melody: {fileID: 8300000, guid: c5ee03e8b78b4c24f908b63621b3c8d7, type: 3}
     midiAsset: {fileID: 4900000, guid: 959ceb05adb43f94a81d12ac2819d506, type: 3}
 --- !u!1 &1782108018

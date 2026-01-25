@@ -4,7 +4,7 @@ using System.Reflection;
 
 public class MusicManager : MonoBehaviour
 {
-    [SerializeField] private float interval;
+    public float interval; // Made public for access by BranchHealth and EnemyWaves
     [SerializeField] private float audioDelay = 0f;
     
     [System.Serializable]
@@ -221,7 +221,7 @@ public class MusicManager : MonoBehaviour
                 }
                 else if (obj.script is Bass bass)
                 {
-                    bass.RestartCycle();
+                    //bass.RestartCycle();
                 }
                 else
                 {

@@ -9,7 +9,6 @@ using System.Linq;
 public class Lead : InstrumentBase
 {
     [SerializeField] private GameObject projectilePrefab;
-    [SerializeField] private float attackRate = 1f;
     [SerializeField] private float attackAngle = 120f;
     [SerializeField] private float spawnDistance = 1f;
 
@@ -20,8 +19,6 @@ public class Lead : InstrumentBase
     [SerializeField] private float playOffset = 0.1f;
 
     private Playback playback;
-    private bool useTimer = false;
-    private float nextFireTime = 0f;
     private double startDspTime;
 
     private float initialAngleOffset;
@@ -39,23 +36,11 @@ public class Lead : InstrumentBase
     void Start()
     {
         initialAngleOffset = transform.localEulerAngles.z;
-            
-        if (midiFile == null)
-        {
-            useTimer = true;
-        }
     }
 
     void Update()
     {
-        if (isQuitting) return;
-
-        if (useTimer && Time.time >= nextFireTime)
-        {
-            float randomAngle = Random.Range(-attackAngle / 2f, attackAngle / 2f);
-            SpawnProjectile(randomAngle);
-            nextFireTime = Time.time + attackRate;
-        }
+        if (isQuitting || midiFile == null) return;
 
         List<PendingShot> toSpawn = new List<PendingShot>();
         lock (_lock)
@@ -185,10 +170,6 @@ public class Lead : InstrumentBase
         if (midiFile != null)
         {
             SetupMidiPlayback();
-        }
-        else
-        {
-            useTimer = true;
         }
     }
 

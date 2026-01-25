@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
@@ -35,6 +36,11 @@ public class BranchHealth : MonoBehaviour
     private int appliedLevels = 0; // сколько уровней уже применено (0..N)
     private List<int> selectedOptionPerLevel; // индекс выбранной опции для каждого уровня, -1 если не выбрано
 
+    // Initial melody tracking
+    private bool isPlayingInitialMelody = false;
+    private int initialMelodyLevel = -1;
+    private Coroutine initialMelodyCoroutine;
+
     [System.Serializable]
     public class UpgradeLevel
     {
@@ -46,8 +52,15 @@ public class BranchHealth : MonoBehaviour
     public class UpgradeOption
     {
         public string optionName = "Default";
+        
+        [Header("Initial Melody (plays once)")]
+        public AudioClip initialMelody;
+        public TextAsset initialMidiAsset;
+        
+        [Header("Main Melody (loops)")]
         public AudioClip melody;
-        public TextAsset midiAsset; // <-- сюда можно указать .mid как TextAsset (Unity) 
+        public TextAsset midiAsset;
+        
         public int stateId = 0;
     }
 
@@ -81,6 +94,13 @@ public class BranchHealth : MonoBehaviour
     void OnDestroy()
     {
         BranchHealthManager.Instance?.UnregisterBranch(this);
+        
+        // Stop any running coroutines
+        if (initialMelodyCoroutine != null)
+        {
+            StopCoroutine(initialMelodyCoroutine);
+            initialMelodyCoroutine = null;
+        }
     }
 
     void OnCollisionEnter(Collision collision)
@@ -146,6 +166,21 @@ public class BranchHealth : MonoBehaviour
             animator.SetTrigger(animatorUpgradeTrigger);
             animator.SetInteger(animatorLevelIntParam, levelIndex + 1);
         }
+
+        // Check if this level has initial melody
+        if (HasInitialMelody(levelIndex))
+        {
+            // Stop any previous initial melody coroutine
+            if (initialMelodyCoroutine != null)
+            {
+                StopCoroutine(initialMelodyCoroutine);
+                initialMelodyCoroutine = null;
+            }
+
+            isPlayingInitialMelody = true;
+            initialMelodyLevel = levelIndex;
+            initialMelodyCoroutine = StartCoroutine(SwitchToMainMelodyAfterCycle());
+        }
     }
 
     private void RevertLevel(int levelIndex)
@@ -157,6 +192,52 @@ public class BranchHealth : MonoBehaviour
             animator.SetTrigger(animatorDowngradeTrigger);
             animator.SetInteger(animatorLevelIntParam, levelIndex);
         }
+
+        // If reverting the level that was playing initial melody, stop it
+        if (isPlayingInitialMelody && initialMelodyLevel == levelIndex)
+        {
+            if (initialMelodyCoroutine != null)
+            {
+                StopCoroutine(initialMelodyCoroutine);
+                initialMelodyCoroutine = null;
+            }
+            isPlayingInitialMelody = false;
+            initialMelodyLevel = -1;
+        }
+    }
+
+    private IEnumerator SwitchToMainMelodyAfterCycle()
+    {
+        if (musicManager == null)
+        {
+            isPlayingInitialMelody = false;
+            initialMelodyLevel = -1;
+            yield break;
+        }
+
+        // Wait for one music cycle to complete
+        yield return new WaitForSeconds(musicManager.interval);
+
+        // Switch to main melody
+        isPlayingInitialMelody = false;
+        initialMelodyLevel = -1;
+        initialMelodyCoroutine = null;
+
+        ScheduleSync();
+    }
+
+    private bool HasInitialMelody(int level)
+    {
+        int sel = selectedOptionPerLevel[level];
+        return HasInitialMelody(level, sel);
+    }
+
+    private bool HasInitialMelody(int level, int option)
+    {
+        if (level < 0 || level >= upgradeLevels.Count) return false;
+        var lvl = upgradeLevels[level];
+        if (option < 0 || option >= lvl.options.Count) return false;
+        return lvl.options[option].initialMelody != null;
     }
 
     private AudioClip GetAudioClipForLevelOption(int level, int option)
@@ -175,8 +256,33 @@ public class BranchHealth : MonoBehaviour
         return lvl.options[option].midiAsset;
     }
 
+    private AudioClip GetInitialAudioClipForLevelOption(int level, int option)
+    {
+        if (level < 0 || level >= upgradeLevels.Count) return null;
+        var lvl = upgradeLevels[level];
+        if (option < 0 || option >= lvl.options.Count) return null;
+        return lvl.options[option].initialMelody;
+    }
+
+    private TextAsset GetInitialMidiForLevelOption(int level, int option)
+    {
+        if (level < 0 || level >= upgradeLevels.Count) return null;
+        var lvl = upgradeLevels[level];
+        if (option < 0 || option >= lvl.options.Count) return null;
+        return lvl.options[option].initialMidiAsset;
+    }
+
     private AudioClip GetCurrentAudioClipForAppliedState()
     {
+        // If playing initial melody for a level, return it
+        if (isPlayingInitialMelody && initialMelodyLevel >= 0 && initialMelodyLevel < appliedLevels)
+        {
+            int sel = selectedOptionPerLevel[initialMelodyLevel];
+            var initialClip = GetInitialAudioClipForLevelOption(initialMelodyLevel, sel);
+            if (initialClip != null) return initialClip;
+        }
+
+        // Otherwise return normal clip for highest applied level
         for (int i = appliedLevels - 1; i >= 0; i--)
         {
             int sel = selectedOptionPerLevel[i];
@@ -201,6 +307,15 @@ public class BranchHealth : MonoBehaviour
 
     private TextAsset GetCurrentMidiForAppliedState()
     {
+        // If playing initial melody for a level, return its MIDI
+        if (isPlayingInitialMelody && initialMelodyLevel >= 0 && initialMelodyLevel < appliedLevels)
+        {
+            int sel = selectedOptionPerLevel[initialMelodyLevel];
+            var initialMidi = GetInitialMidiForLevelOption(initialMelodyLevel, sel);
+            if (initialMidi != null) return initialMidi;
+        }
+
+        // Otherwise return normal MIDI for highest applied level
         for (int i = appliedLevels - 1; i >= 0; i--)
         {
             int sel = selectedOptionPerLevel[i];
