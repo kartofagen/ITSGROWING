@@ -6,8 +6,6 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("Тег, который использует ваш projectile/pool для пуль")]
     public string projectileTag = "Projectile";
 
-    public int hp = 1;
-
     private bool isDead = false;
 
     void OnTriggerEnter(Collider other)
@@ -16,21 +14,22 @@ public class EnemyHealth : MonoBehaviour
 
         if (other.CompareTag(projectileTag))
         {
-            // optionally: Destroy projectile
             Destroy(other.gameObject);
 
             Die();
         }
     }
 
-    // Альтернативно вы можете вызвать этот метод из вашей логики попадания/снаряда.
     public void Die()
     {
         if (isDead) return;
         isDead = true;
 
         // дать здоровье случайной ветке
-        BranchHealthManager.Instance?.GiveHealthToRandomBranch(1);
+        BranchHealthManager.Instance?.GiveHealthToWeakestBranch(1);
+
+        // Increment killed count
+        EnemyWaves.Instance?.IncrementKilledEnemies();
 
         // эффект/звук/анимация — по желанию
         Destroy(gameObject);

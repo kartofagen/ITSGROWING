@@ -129,7 +129,6 @@ GameObject:
   m_Component:
   - component: {fileID: 12406708}
   - component: {fileID: 12406709}
-  - component: {fileID: 12406710}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -168,27 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f02550ac83d88da4796ab3a791c85053, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!135 &12406710
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 12406706}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Radius: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  _totalHealth: 0
 --- !u!1 &37560861
 GameObject:
   m_ObjectHideFlags: 0
@@ -1146,17 +1125,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 717290459}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b5e06ce669f6144a90a1fb1d4bcf710, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 717290464}
-  initialHealth: 10
+  initialHealth: 30
   currentHealth: 0
-  damagePerSecondPerEnemy: 1
   maxHealth: 9999
+  damageFromEnemy: 1
   upgradeLevels: []
   animator: {fileID: 717290462}
   animatorLevelIntParam: UpgradeLevel
@@ -1530,10 +1509,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 797789099}
-  initialHealth: 10
+  initialHealth: 20
   currentHealth: 0
-  damagePerSecondPerEnemy: 1
   maxHealth: 9999
+  damageFromEnemy: 1
   upgradeLevels:
   - threshold: 10
     options:
@@ -1713,17 +1692,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 857617235}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b5e06ce669f6144a90a1fb1d4bcf710, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   branchName: Lead
   instrumentScript: {fileID: 857617237}
-  initialHealth: 10
+  initialHealth: 30
   currentHealth: 0
-  damagePerSecondPerEnemy: 1
   maxHealth: 9999
+  damageFromEnemy: 1
   upgradeLevels: []
   animator: {fileID: 857617240}
   animatorLevelIntParam: UpgradeLevel
@@ -1907,6 +1886,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1746083193}
   - component: {fileID: 1746083192}
+  - component: {fileID: 1746083194}
   m_Layer: 0
   m_Name: EnemiesManager
   m_TagString: Untagged
@@ -1928,10 +1908,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   midiFile: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
   enemyPrefab: {fileID: 1590698557149931338, guid: 112e9d3ab20d60f4d9024d8e9f1affa4, type: 3}
-  spawnRate: 5
+  spawnRate: 3
   spawnDistance: 10
   playOffset: 0
   moveDistance: 0.5
+  spawnRateCoeff: 0.1
 --- !u!4 &1746083193
 Transform:
   m_ObjectHideFlags: 0
@@ -1947,6 +1928,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1746083194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746083191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff3bc627f08bdf4d964f53bc7ae1505, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aggressionLevels:
+  - threshold: 30
+    melody: {fileID: 8300000, guid: 3749ea491f6752f428e2ff8e271ccb1a, type: 3}
+    midiAsset: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
+  - threshold: 60
+    melody: {fileID: 8300000, guid: 6484b4d4a069047439bed9cfd9e35fdf, type: 3}
+    midiAsset: {fileID: 4900000, guid: 629952917cb4a584786bf6e8a0439a78, type: 3}
+  - threshold: 90
+    melody: {fileID: 8300000, guid: c5ee03e8b78b4c24f908b63621b3c8d7, type: 3}
+    midiAsset: {fileID: 4900000, guid: 959ceb05adb43f94a81d12ac2819d506, type: 3}
 --- !u!1 &1782108018
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class BranchHealthManager : MonoBehaviour
@@ -29,26 +30,56 @@ public class BranchHealthManager : MonoBehaviour
 
     private List<BranchHealth> branches = new List<BranchHealth>();
 
+    public int _totalHealth;
+
+    public int TotalHealth
+    {
+        get
+        {
+            return _totalHealth;
+        }
+        set
+        {
+            _totalHealth = value;
+        }
+    }
+    
     public void RegisterBranch(BranchHealth b)
     {
         if (!branches.Contains(b))
             branches.Add(b);
+        UpdateTotalHealth();
     }
 
     public void UnregisterBranch(BranchHealth b)
     {
         if (branches.Contains(b))
             branches.Remove(b);
+        UpdateTotalHealth();
     }
 
     public IReadOnlyList<BranchHealth> GetBranches() => branches.AsReadOnly();
 
-    public void GiveHealthToRandomBranch(int amount)
+    public void GiveHealthToWeakestBranch(int amount)
     {
         if (branches.Count == 0) return;
-        int idx = Random.Range(0, branches.Count);
-        branches[idx].AddHealth(amount);
-        Debug.Log($"BranchHealthManager: gave {amount} HP to branch {branches[idx].branchName}");
+
+        // Find the minimum health
+        int minHealth = branches.Min(b => b.currentHealth);
+
+        // Get all branches with min health
+        var weakestBranches = branches.Where(b => b.currentHealth == minHealth).ToList();
+
+        // Pick random if multiple
+        BranchHealth target = weakestBranches[Random.Range(0, weakestBranches.Count)];
+        target.AddHealth(amount);
+        Debug.Log($"BranchHealthManager: gave {amount} HP to branch {target.branchName}");
+    }
+    
+    public void UpdateTotalHealth()
+    {
+        TotalHealth = branches.Sum(b => b.currentHealth);
+        EnemyWaves.Instance?.SetAggression(TotalHealth);
     }
 
     void OnDestroy()

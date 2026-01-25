@@ -13,14 +13,14 @@ public class BranchHealth : MonoBehaviour
     [Header("Health")]
     public int initialHealth = 10;
     public int currentHealth;
-    public float damagePerSecondPerEnemy = 1f;
     public int maxHealth = 9999;
+    public int damageFromEnemy = 1;
 
     [Header("Upgrade Tree (levels ascending)")]
     public List<UpgradeLevel> upgradeLevels = new List<UpgradeLevel>();
 
     [Header("Animation / Audio")]
-    public Animator animator; // optional
+    public Animator animator;
     public string animatorLevelIntParam = "UpgradeLevel";
     public string animatorUpgradeTrigger = "OnUpgrade";
     public string animatorDowngradeTrigger = "OnDowngrade";
@@ -29,7 +29,6 @@ public class BranchHealth : MonoBehaviour
     [Tooltip("Если true — при смене апгрейда BranchHealth попытается установить связанный midiAsset в поле 'midiFile' у instrumentScript (если такое поле/свойство найдено), и затем вызвать RestartMidiProcessing() если такой метод есть.")]
     public bool updateInstrumentMidiFile = true;
 
-    // internal
     private HashSet<GameObject> enemiesInside = new HashSet<GameObject>();
     private Coroutine damageCoroutine;
     private MusicManager musicManager;
@@ -76,6 +75,7 @@ public class BranchHealth : MonoBehaviour
 
         // initial sync - for start, we can do immediate, but to be consistent, schedule
         ScheduleSync();
+        CheckUpgradeStates();
     }
 
     void OnDestroy()
@@ -83,47 +83,20 @@ public class BranchHealth : MonoBehaviour
         BranchHealthManager.Instance?.UnregisterBranch(this);
     }
 
-    /*void OnTriggerEnter(Collider other)
+    void OnCollisionEnter(Collision collision)
     {
-        if (other.CompareTag("Enemy"))
+        if (collision.gameObject.CompareTag("Enemy"))
         {
-            enemiesInside.Add(other.gameObject);
-            if (damageCoroutine == null)
-                damageCoroutine = StartCoroutine(DamageWhileEnemiesInside());
+            ApplyDamage(damageFromEnemy);
         }
     }
-
-    void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Enemy"))
-        {
-            enemiesInside.Remove(other.gameObject);
-            if (enemiesInside.Count == 0 && damageCoroutine != null)
-            {
-                StopCoroutine(damageCoroutine);
-                damageCoroutine = null;
-            }
-        }
-    }
-
-    IEnumerator DamageWhileEnemiesInside()
-    {
-        while (enemiesInside.Count > 0)
-        {
-            float dt = 1f;
-            float totalDamage = Mathf.CeilToInt(enemiesInside.Count * damagePerSecondPerEnemy * dt);
-            ApplyDamage((int)totalDamage);
-            yield return new WaitForSeconds(dt);
-        }
-
-        damageCoroutine = null;
-    }*/
 
     public void ApplyDamage(int amount)
     {
         if (amount <= 0) return;
         currentHealth = Mathf.Max(0, currentHealth - amount);
         CheckUpgradeStates();
+        BranchHealthManager.Instance?.UpdateTotalHealth();
     }
 
     public void AddHealth(int amount)
@@ -131,6 +104,7 @@ public class BranchHealth : MonoBehaviour
         if (amount <= 0) return;
         currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
         CheckUpgradeStates();
+        BranchHealthManager.Instance?.UpdateTotalHealth();
     }
 
     private void CheckUpgradeStates()

@@ -7,12 +7,37 @@ using System.Collections.Generic;
 
 public class EnemiesPercussionManager : InstrumentBase
 {
+    private static EnemiesPercussionManager _instance;
+    private static bool applicationQuitting = false;
+
+    public static EnemiesPercussionManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = Object.FindObjectOfType<EnemiesPercussionManager>();
+            }
+
+            if (_instance == null && Application.isPlaying && !applicationQuitting)
+            {
+                var go = new GameObject("EnemiesPercussionManager");
+                _instance = go.AddComponent<EnemiesPercussionManager>();
+            }
+
+            return _instance;
+        }
+    }
+
     public GameObject enemyPrefab;
     public float spawnRate = 2f;
     public float spawnDistance = 10f;
     
     [SerializeField] private float playOffset = 0.1f;
     [SerializeField] private float moveDistance = 0.5f;
+    [SerializeField] private float spawnRateCoeff = 0.1f;
+
+    private float initialSpawnRate;
 
     private Transform player;
     private float nextSpawnTime = 0f;
@@ -33,6 +58,8 @@ public class EnemiesPercussionManager : InstrumentBase
         {
             Debug.LogWarning("EnemiesManager: No MIDI file assigned. Enemies will spawn but not move to rhythm.");
         }
+
+        initialSpawnRate = spawnRate;
     }
 
     void Update()
@@ -186,16 +213,27 @@ public class EnemiesPercussionManager : InstrumentBase
         }
     }
 
+    public void UpdateSpawnRate()
+    {
+        int killed = EnemyWaves.Instance?.KilledEnemies ?? 0;
+        spawnRate = initialSpawnRate / (1f + killed * spawnRateCoeff);
+        Debug.Log($"EnemiesPercussionManager: Updated spawnRate to {spawnRate} based on {killed} killed enemies");
+    }
+
     void OnApplicationQuit()
     {
         isQuitting = true;
+        applicationQuitting = true;
         StopPlayback();
     }
     
     void OnDestroy()
     {
         isQuitting = true;
+        applicationQuitting = true;
         StopPlayback();
+        if (_instance == this)
+            _instance = null;
     }
 
     void OnDisable()
