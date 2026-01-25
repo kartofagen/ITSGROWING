@@ -217,7 +217,7 @@ MonoBehaviour:
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
   targetSpreadRadiusMultiplier: 1.5
-  lightCount: 5
+  lightCount: 0
   lightSpots: []
   seed: 12345
   frameMode: 0
