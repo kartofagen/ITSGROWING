@@ -227,7 +227,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 1.5
+  targetSpreadRadius: 2
   segmentsPerUnitToTarget: 0
   lightCount: 0
   lightSpots: []
@@ -410,7 +410,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 738440162}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 0.4
+  targetSpreadRadius: 2
   segmentsPerUnitToTarget: 1
   lightCount: 0
   lightSpots: []
@@ -667,7 +667,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 1903464484}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 0.004
+  targetSpreadRadius: 0.03
   segmentsPerUnitToTarget: 1
   lightCount: 0
   lightSpots: []
@@ -958,7 +958,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 1.5
+  targetSpreadRadius: 2
   segmentsPerUnitToTarget: 0
   lightCount: 5
   lightSpots: []
@@ -1559,7 +1559,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 1856587154}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 0.4
+  targetSpreadRadius: 2
   segmentsPerUnitToTarget: 1
   lightCount: 0
   lightSpots: []
@@ -1742,7 +1742,7 @@ MonoBehaviour:
   perpendicularShellSurfaceInset: 0.001
   targetObject: {fileID: 0}
   targetAttractionStrength: 0.7
-  targetSpreadRadiusMultiplier: 1.5
+  targetSpreadRadius: 2
   segmentsPerUnitToTarget: 0
   lightCount: 0
   lightSpots: []

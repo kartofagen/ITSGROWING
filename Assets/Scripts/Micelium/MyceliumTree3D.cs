@@ -116,10 +116,10 @@ public class MyceliumTree3D : MonoBehaviour
     public Transform targetObject;
 
     [Tooltip("How strongly branches are attracted to the target (0 = no attraction, 1 = strong attraction).")]
-    [Range(0f, 1f)] public float targetAttractionStrength = 0.7f;
+    [Range(0f, 3f)] public float targetAttractionStrength = 0.7f;
 
-    [Tooltip("Multiplier for target bounds to determine spread radius around target.")]
-    public float targetSpreadRadiusMultiplier = 1.5f;
+    [Tooltip("Spread radius around target position (world units).")]
+    public float targetSpreadRadius = 2f;
 
     [Tooltip("Segments per 1 unit of distance from tree center to target (0 = disabled).")]
     [Range(0f, 20f)] public float segmentsPerUnitToTarget = 0f;
@@ -920,30 +920,8 @@ public class MyceliumTree3D : MonoBehaviour
     {
         if (target == null) return false;
 
-        Bounds bounds;
-        Renderer renderer = target.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            bounds = renderer.bounds;
-        }
-        else
-        {
-            Collider collider = target.GetComponent<Collider>();
-            if (collider != null)
-            {
-                bounds = collider.bounds;
-            }
-            else
-            {
-                // Fallback: use a default small radius around the target position
-                bounds = new Bounds(target.position, Vector3.one * 0.5f);
-            }
-        }
-
-        // Expand bounds by spread radius multiplier
-        bounds.Expand((targetSpreadRadiusMultiplier - 1f) * bounds.size.magnitude);
-
-        return bounds.Contains(pos);
+        float spreadRadius = Mathf.Max(0f, targetSpreadRadius);
+        return Vector3.Distance(pos, target.position) <= spreadRadius;
     }
 
     private float GetTargetAttractionStrength(Vector3 pos, Transform target, Vector3 rootPos)
@@ -960,26 +938,7 @@ public class MyceliumTree3D : MonoBehaviour
         float distanceRatio = Mathf.Clamp01(distanceToTarget / maxDistance);
         
         // When very close to target, reduce attraction to allow spreading
-        Bounds bounds;
-        Renderer renderer = target.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            bounds = renderer.bounds;
-        }
-        else
-        {
-            Collider collider = target.GetComponent<Collider>();
-            if (collider != null)
-            {
-                bounds = collider.bounds;
-            }
-            else
-            {
-                bounds = new Bounds(target.position, Vector3.one * 0.5f);
-            }
-        }
-
-        float targetRadius = bounds.size.magnitude * 0.5f * targetSpreadRadiusMultiplier;
+        float targetRadius = Mathf.Max(0f, targetSpreadRadius);
         if (distanceToTarget < targetRadius)
         {
             // Within target bounds - reduce attraction to allow spreading
