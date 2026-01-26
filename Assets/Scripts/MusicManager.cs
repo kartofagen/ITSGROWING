@@ -154,32 +154,42 @@ public class MusicManager : MonoBehaviour
             {
                 if (obj.script == pending.script)
                 {
-                    // Update audio clip on the next source
+                    // Обновляем audioClip
                     if (pending.clip != null)
                     {
                         obj.audioClip = pending.clip;
-                        AudioSource nextSource = obj.useSourceA ? obj.sourceB : obj.sourceA;
-                        nextSource.clip = pending.clip;
-
-                        // Preload the new clip
-                        if (nextSource.clip != null)
+                    
+                        // ОБНОВЛЯЕМ ОБА ИСТОЧНИКА!
+                        // Источник A
+                        obj.sourceA.clip = pending.clip;
+                        if (obj.sourceA.clip != null)
                         {
-                            nextSource.Play();
-                            nextSource.Stop();
+                            obj.sourceA.Play();
+                            obj.sourceA.Stop();
                         }
+                    
+                        // Источник B
+                        obj.sourceB.clip = pending.clip;
+                        if (obj.sourceB.clip != null)
+                        {
+                            obj.sourceB.Play();
+                            obj.sourceB.Stop();
+                        }
+                    
+                        Debug.Log($"MusicManager: Обновлены оба источника для {obj.script.name} на клип {pending.clip.name}");
                     }
-
-                    // Update MIDI if provided
+                
+                    // Обновляем MIDI
                     if (pending.midi != null)
                     {
                         TrySetMidiField(obj.script, pending.midi);
                     }
-
+                
                     break;
                 }
             }
         }
-
+    
         pendingUpdates.Clear();
     }
 
@@ -188,15 +198,16 @@ public class MusicManager : MonoBehaviour
         foreach (var obj in midiControlledObjects)
         {
             if (!obj.enabled || obj.script == null) continue;
-            
-            // Flip first
+        
+            // Переключаемся
             obj.useSourceA = !obj.useSourceA;
-            
+        
             AudioSource currentSource = obj.useSourceA ? obj.sourceA : obj.sourceB;
-            
+        
             if (currentSource != null)
             {
                 currentSource.Play();
+                Debug.Log($"MusicManager: Играет источник {(obj.useSourceA ? "A" : "B")} для {obj.script.name}");
             }
         }
     }

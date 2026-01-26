@@ -213,11 +213,16 @@ public class BranchHealth : MonoBehaviour
             animator.SetInteger(animatorLevelIntParam, levelIndex);
         }
 
-        // Notify instrument scripts about level change
+        // ВНИМАНИЕ: levelIndex - это индекс уровня, который ОТКАТЫВАЕТСЯ
+        // После отката этого уровня, текущий уровень будет levelIndex (не levelIndex+1)
+        // Например, если откатываем уровень 2, то новый уровень будет 1
+        // Но нам нужно передать НОВЫЙ уровень, поэтому levelIndex
+    
         if (instrumentScript != null)
         {
             if (instrumentScript is Bass bass)
             {
+                // Передаем новый уровень (levelIndex уже указывает на уровень после отката)
                 bass.OnUpgradeLevelChanged(levelIndex);
             }
             else if (instrumentScript is EatSounds eatSounds)
