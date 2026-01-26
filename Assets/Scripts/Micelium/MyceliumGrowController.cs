@@ -107,8 +107,21 @@ public class MyceliumGrowController : MonoBehaviour
         if (playOnStart)
         {
             t += growSpeed * Time.deltaTime;
-            if (loop) t = Mathf.Repeat(t, 1f);
-            else t = Mathf.Clamp01(t);
+            
+            // Handle reverse growth (shrinking)
+            if (growSpeed < 0)
+            {
+                t = Mathf.Max(0f, t);
+            }
+            else if (loop)
+            {
+                t = Mathf.Repeat(t, 1f);
+            }
+            else
+            {
+                t = Mathf.Clamp01(t);
+            }
+            
             grow = t;
         }
 

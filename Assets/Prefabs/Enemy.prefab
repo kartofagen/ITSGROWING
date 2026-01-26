@@ -123,7 +123,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: -0, y: 0, z: 0}
-  m_LocalScale: {x: 0.03, y: 0.03, z: 0.03}
+  m_LocalScale: {x: 0.09, y: 0.09, z: 0.09}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1221333027373126885}
@@ -501,7 +501,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 0}
   moveDuration: 0.5
-  moveDistance: 0.5
+  moveDistance: 1.5
 --- !u!114 &7271676715420884083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -523,6 +523,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 73e85ec5863ce2f45aa4a0e4eb33c582, type: 3}
   renderer: {fileID: 3073789879050847041}
   deadMaterial: {fileID: 2100000, guid: 5e207a6be7db1f741a2f5262acba5129, type: 2}
+  isEaten: 0
 --- !u!136 &781780546248131779
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -542,10 +543,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.36
-  m_Height: 0.86
+  m_Radius: 0.59018993
+  m_Height: 2.0901349
   m_Direction: 1
-  m_Center: {x: 0, y: -0.03, z: 0}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &135163429229614321
 Rigidbody:
   m_ObjectHideFlags: 0

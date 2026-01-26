@@ -110,7 +110,10 @@ public class MyceliumTree3D : MonoBehaviour
 
         // каждый запуск новый seed
         seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
-
+    }
+    
+    private void Start()
+    {
         if (rebuildOnPlay) Rebuild();
     }
 

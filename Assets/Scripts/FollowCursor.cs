@@ -6,6 +6,7 @@ public class FollowCursorWithFixedZ : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
     [SerializeField] private float fixedZPosition = 10f;
+    [SerializeField] private Animator cameraAnimator;
 
     private bool enterGame = false;
     
@@ -36,13 +37,14 @@ public class FollowCursorWithFixedZ : MonoBehaviour
         if (other.gameObject.CompareTag("Mushroom"))
         {
             enterGame = true;
+            cameraAnimator.SetTrigger("StartGame");
             StartCoroutine(StartGame());
         }
     }
     
     private IEnumerator StartGame()
     {
-        yield return new WaitForSeconds(0f);
+        yield return new WaitForSeconds(3f);
 
         SceneManager.LoadScene("Scenes/Main");
     }

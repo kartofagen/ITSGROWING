@@ -114,10 +114,17 @@ public class BranchHealth : MonoBehaviour
     public void ApplyDamage(int amount)
     {
         if (amount <= 0) return;
+        
+        if (instrumentScript is Bass bass)
+        {
+            amount = bass.TakeDamage(amount);
+        }
+        
         currentHealth = Mathf.Max(0, currentHealth - amount);
         CheckUpgradeStates();
         BranchHealthManager.Instance?.UpdateTotalHealth();
     }
+
 
     public void AddHealth(int amount)
     {
@@ -167,6 +174,19 @@ public class BranchHealth : MonoBehaviour
             animator.SetInteger(animatorLevelIntParam, levelIndex + 1);
         }
 
+        // Notify instrument scripts about level change
+        if (instrumentScript != null)
+        {
+            if (instrumentScript is Bass bass)
+            {
+                bass.OnUpgradeLevelChanged(levelIndex);
+            }
+            else if (instrumentScript is EatSounds eatSounds)
+            {
+                eatSounds.OnUpgradeLevelChanged(levelIndex);
+            }
+        }
+
         // Check if this level has initial melody
         if (HasInitialMelody(levelIndex))
         {
@@ -191,6 +211,19 @@ public class BranchHealth : MonoBehaviour
         {
             animator.SetTrigger(animatorDowngradeTrigger);
             animator.SetInteger(animatorLevelIntParam, levelIndex);
+        }
+
+        // Notify instrument scripts about level change
+        if (instrumentScript != null)
+        {
+            if (instrumentScript is Bass bass)
+            {
+                bass.OnUpgradeLevelChanged(levelIndex);
+            }
+            else if (instrumentScript is EatSounds eatSounds)
+            {
+                eatSounds.OnUpgradeLevelChanged(levelIndex);
+            }
         }
 
         // If reverting the level that was playing initial melody, stop it
