@@ -642,15 +642,15 @@ MonoBehaviour:
   capStart: 1
   capEnd: 1
   maxDepth: 7
-  segmentsPerBranch: 23
+  segmentsPerBranch: 84
   segmentLength: 0.08
   wiggle: 0.167
   branchSpreadDegrees: 35
   maxBranches: 1251
   radiusDecay: 0.95
   lengthDecay: 0.98
-  branchStart01: 0.2
-  branchGuarantee01: 0.5
+  branchStart01: 0.532
+  branchGuarantee01: 1
   minBranchesByGuarantee: 3
   branchInterval: 0.6
   branchChanceAfterStart: 0.35
@@ -1269,7 +1269,7 @@ MonoBehaviour:
   showPorousSphereMesh: 0
   porousSphereMeshLatitudeSegments: 100
   porousSphereMeshLongitudeSegments: 100
-  usePerpendicularShell: 0
+  usePerpendicularShell: 1
   perpendicularShellCenter: {x: 0, y: 0, z: 0}
   perpendicularShellInnerRadius: 2
   perpendicularShellOuterRadius: 6.2

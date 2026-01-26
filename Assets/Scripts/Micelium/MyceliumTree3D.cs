@@ -46,6 +46,8 @@ public class MyceliumTree3D : MonoBehaviour
     public bool useSphereBounds = true;
     public Vector3 sphereCenter = Vector3.zero;
     public float sphereRadius = 6f;
+    [Tooltip("Extra growth distance after hitting sphere boundary (random between min/max).")]
+    public Vector2 sphereExtraGrowRange = new Vector2(0f, 0.5f);
 
     public enum SphereOutMode { ClampToSurfaceAndSlide, ClampToSurfaceStop, StopBranch }
     public SphereOutMode sphereOutMode = SphereOutMode.ClampToSurfaceAndSlide;
@@ -58,6 +60,8 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Header("Bounds (Hemisphere)")]
     public bool useHemisphere = true;
+    [Tooltip("Extra growth distance after hitting hemisphere plane (random between min/max).")]
+    public Vector2 hemisphereExtraGrowRange = new Vector2(0f, 0.5f);
 
     public enum HemispherePlaneMode { ClampAndSlide, ClampStop, StopBranch }
     public HemispherePlaneMode hemispherePlaneMode = HemispherePlaneMode.ClampAndSlide;
@@ -66,6 +70,8 @@ public class MyceliumTree3D : MonoBehaviour
 
     [Header("Bounds (Longitude slice)")]
     public bool useThetaLimit = true;
+    [Tooltip("Extra growth distance after hitting theta limit (random between min/max).")]
+    public Vector2 thetaExtraGrowRange = new Vector2(0f, 0.5f);
 
     [Tooltip("Минимальная долгота theta (радианы). 0 = ось +X.")]
     public float thetaMin = 0f;
@@ -499,6 +505,7 @@ public class MyceliumTree3D : MonoBehaviour
             dir = SafeNormalize(baseDir, dir);
 
             Vector3 nextPos = pos + dir * thisSegLen;
+            Vector3 stepDir = SafeNormalize(nextPos - pos, dir);
 
             // Apply constraints
             if (sphereConstraint != null)
@@ -514,6 +521,8 @@ public class MyceliumTree3D : MonoBehaviour
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
+
+                        ExtendBeyondConstraint(sphereExtraGrowRange, stepDir, ref pos, ref g, pts, dists, thisSegLen);
                     }
                     break;
                 }
@@ -534,6 +543,8 @@ public class MyceliumTree3D : MonoBehaviour
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
+
+                        ExtendBeyondConstraint(hemisphereExtraGrowRange, stepDir, ref pos, ref g, pts, dists, thisSegLen);
                     }
                     break;
                 }
@@ -554,6 +565,8 @@ public class MyceliumTree3D : MonoBehaviour
                         g += stepLenStop;
                         pts.Add(pos);
                         dists.Add(g);
+
+                        ExtendBeyondConstraint(thetaExtraGrowRange, stepDir, ref pos, ref g, pts, dists, thisSegLen);
                     }
                     break;
                 }
@@ -857,6 +870,36 @@ public class MyceliumTree3D : MonoBehaviour
         float y = (float)(Math.Cos(phi));
         float z = (float)(Math.Sin(phi) * Math.Sin(theta));
         return new Vector3(x, y, z);
+    }
+
+    private void ExtendBeyondConstraint(
+        Vector2 extraRange,
+        Vector3 outwardDir,
+        ref Vector3 pos,
+        ref float g,
+        List<Vector3> pts,
+        List<float> dists,
+        float stepLen)
+    {
+        float min = Mathf.Max(0f, extraRange.x);
+        float max = Mathf.Max(min, extraRange.y);
+        if (max <= 0f) return;
+
+        float extra = Lerp(min, max, (float)rng.NextDouble());
+        if (extra <= 1e-6f) return;
+
+        outwardDir = SafeNormalize(outwardDir, Vector3.up);
+        float remaining = extra;
+
+        while (remaining > 1e-6f)
+        {
+            float step = Mathf.Min(stepLen, remaining);
+            pos += outwardDir * step;
+            g += step;
+            pts.Add(pos);
+            dists.Add(g);
+            remaining -= step;
+        }
     }
 
     private static double NextSigned(System.Random r) => r.NextDouble() * 2.0 - 1.0;

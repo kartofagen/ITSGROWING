@@ -34,6 +34,7 @@ public class HemispherePlaneConstraint : BranchConstraint
 
             if (planeMode == PlaneMode.StopBranch)
             {
+                result.newPosition = new Vector3(nextPos.x, planeY, nextPos.z);
                 result.shouldStop = true;
                 return result;
             }

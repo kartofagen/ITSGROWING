@@ -46,6 +46,7 @@ public class ThetaLimitConstraint : BranchConstraint
 
             if (outMode == OutMode.StopBranch)
             {
+                result.newPosition = ClampPointToTheta(nextPos, boundary);
                 result.shouldStop = true;
                 return result;
             }

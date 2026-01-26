@@ -46,6 +46,7 @@ public class SphereBoundsConstraint : BranchConstraint
 
             if (outMode == OutMode.StopBranch)
             {
+                result.newPosition = clamped;
                 result.shouldStop = true;
                 return result;
             }
