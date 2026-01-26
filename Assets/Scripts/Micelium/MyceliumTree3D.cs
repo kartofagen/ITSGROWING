@@ -18,26 +18,29 @@ public class MyceliumTree3D : MonoBehaviour
     public float segmentLength = 0.25f;
     [Range(0f, 1f)] public float wiggle = 0.22f;
     [Range(0f, 90f)] public float branchSpreadDegrees = 35f;
-    [Range(0f, 1f)] public float extraBranchChance = 0.55f;
-    [Range(0f, 1f)] public float thirdBranchChance = 0.15f;
     [Range(1, 5000)] public int maxBranches = 600;
 
     [Header("Falloff")]
     [Range(0.5f, 0.95f)] public float radiusDecay = 0.82f;
     [Range(0.5f, 0.98f)] public float lengthDecay = 0.90f;
 
-    [Header("Base branching (no stubs)")]
-    [Tooltip("С какой доли ствола разрешаем боковые ветки (0..1). 0.25 = после 25% ствола.")]
-    [Range(0f, 1f)] public float trunkBranchStart01 = 0.25f;
+    [Header("Branching Control (distance-based)")]
+    [Tooltip("No branching before this normalized progress along a branch (0..1).")]
+    [Range(0f, 1f)] public float branchStart01 = 0.2f;
 
-    [Tooltip("Минимум сегментов у веток на малой глубине (чтобы не были 'пеньками').")]
-    [Range(2, 100)] public int baseMinSegments = 18;
+    [Tooltip("Ensure at least minBranchesByGuarantee branches by this trunk progress (0..1).")]
+    [Range(0f, 1f)] public float branchGuarantee01 = 0.5f;
 
-    [Tooltip("До какой глубины действует baseMinSegments (0=только ствол, 1=ствол+дети, 2=ещё глубже).")]
-    [Range(0, 6)] public int baseBoostDepth = 2;
+    [Range(0, 1000)] public int minBranchesByGuarantee = 3;
 
-    [Tooltip("Усиление длины сегмента у основания (1.0 = без изменений).")]
-    [Range(1f, 3f)] public float baseSegLenBoost = 1.25f;
+    [Tooltip("Minimum world distance between branch spawn events along a branch.")]
+    [Range(0f, 10f)] public float branchInterval = 0.6f;
+
+    [Tooltip("Chance to branch when eligible after branchStart01.")]
+    [Range(0f, 1f)] public float branchChanceAfterStart = 0.35f;
+
+    [Range(1, 5)] public int minChildrenPerEvent = 1;
+    [Range(1, 5)] public int maxChildrenPerEvent = 2;
 
     [Header("Bounds (Sphere)")]
     public bool useSphereBounds = true;
@@ -128,8 +131,9 @@ public class MyceliumTree3D : MonoBehaviour
     private System.Random rng;
     private MeshFilter mf;
     private int branchCount;
+    private int spawnedBranchCount;
     private Vector3 rootPosition; // Store root position for target attraction calculations
-    private float trunkTotalLength = 0f; // Total length of the trunk (depth 0) for trunkBranchStart01 calculation
+    private float trunkTotalLength = 0f; // Total length of the trunk (depth 0)
 
     // Constraints
     private SphereBoundsConstraint sphereConstraint;
@@ -158,6 +162,7 @@ public class MyceliumTree3D : MonoBehaviour
     {
         rng = new System.Random(seed);
         branchCount = 0;
+        spawnedBranchCount = 0;
         trunkTotalLength = 0f; // Reset trunk length
 
         var branches = new List<BranchPath>(256);
@@ -434,6 +439,7 @@ public class MyceliumTree3D : MonoBehaviour
         if (thisRadius < 0.0005f) return;
 
         branchCount++;
+        if (depth > 0) spawnedBranchCount++;
 
         var pts = new List<Vector3>(thisSegments + 1);
         var dists = new List<float>(thisSegments + 1);
@@ -447,6 +453,8 @@ public class MyceliumTree3D : MonoBehaviour
 
         Vector3 localUp = AnyPerpendicular(dir);
         bool spawnedPerpendicular = false;
+        float expectedBranchLength = thisSegments * Mathf.Max(0.0001f, thisSegLen);
+        float lastSpawnDist = startGlobalDist - branchInterval;
 
         for (int i = 0; i < thisSegments; i++)
         {
@@ -621,12 +629,6 @@ public class MyceliumTree3D : MonoBehaviour
                                 float childSegLen = thisSegLen * lengthDecay * Lerp(0.9f, 1.1f, (float)rng.NextDouble());
                                 int childSegments = Mathf.Max(6, Mathf.RoundToInt(thisSegments * lengthDecay));
 
-                                if (depth <= baseBoostDepth)
-                                {
-                                    childSegments = Mathf.Max(childSegments, baseMinSegments);
-                                    childSegLen *= baseSegLenBoost;
-                                }
-
                                 float hitDist = Vector3.Distance(pos, hit);
                                 float childStartDist = g + hitDist;
 
@@ -666,17 +668,24 @@ public class MyceliumTree3D : MonoBehaviour
             // иногда ветвим по ходу — и даём детям правильный startGlobalDist = g
             if (depth < maxDepth && i > 2 && i < thisSegments - 3)
             {
-                // Check trunkBranchStart01 for trunk (depth 0) - use segment index as proxy
-                if (depth == 0)
-                {
-                    float segmentProgress = (float)(i + 1) / thisSegments;
-                    if (segmentProgress < trunkBranchStart01)
-                        continue; // Skip branching if we haven't reached the threshold yet
-                }
+                float localProgress = expectedBranchLength > 1e-6f
+                    ? (g - startGlobalDist) / expectedBranchLength
+                    : 1f;
+                bool reachedStart = localProgress >= branchStart01;
+                bool spacingOk = (g - lastSpawnDist) >= branchInterval;
 
-                float splitProb = 0.06f * Mathf.Lerp(1.0f, 0.6f, depth / Mathf.Max(1f, maxDepth));
-                if (rng.NextDouble() < splitProb)
-                    SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
+                bool forceByGuarantee = depth == 0
+                    && minBranchesByGuarantee > 0
+                    && branchGuarantee01 > 0f
+                    && localProgress >= branchGuarantee01
+                    && spawnedBranchCount < minBranchesByGuarantee;
+
+                if (reachedStart && spacingOk && (forceByGuarantee || rng.NextDouble() < branchChanceAfterStart))
+                {
+                    int spawned = SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
+                    if (spawned > 0)
+                        lastSpawnDist = g;
+                }
             }
         }
 
@@ -693,10 +702,29 @@ public class MyceliumTree3D : MonoBehaviour
         }
 
         if (depth < maxDepth)
-            SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
+        {
+            float localProgressEnd = expectedBranchLength > 1e-6f
+                ? (g - startGlobalDist) / expectedBranchLength
+                : 1f;
+            bool reachedStartEnd = localProgressEnd >= branchStart01;
+            bool spacingOkEnd = (g - lastSpawnDist) >= branchInterval;
+
+            bool forceByGuarantee = depth == 0
+                && minBranchesByGuarantee > 0
+                && branchGuarantee01 > 0f
+                && localProgressEnd >= branchGuarantee01
+                && spawnedBranchCount < minBranchesByGuarantee;
+
+            if (reachedStartEnd && spacingOkEnd && (forceByGuarantee || rng.NextDouble() < branchChanceAfterStart))
+            {
+                int spawned = SpawnChildren(outBranches, pos, dir, g, depth, thisRadius, thisSegments, thisSegLen);
+                if (spawned > 0)
+                    lastSpawnDist = g;
+            }
+        }
     }
 
-    private void SpawnChildren(
+    private int SpawnChildren(
         List<BranchPath> outBranches,
         Vector3 atPos,
         Vector3 parentDir,
@@ -707,23 +735,7 @@ public class MyceliumTree3D : MonoBehaviour
         float parentSegLen
     )
     {
-        if (branchCount >= maxBranches) return;
-
-        // Check trunkBranchStart01: prevent branches from trunk (depth 0) until threshold is reached
-        if (depth == 0)
-        {
-            // Use trunkTotalLength if available, otherwise estimate based on expected segments
-            float estimatedTrunkLength = trunkTotalLength > 0f 
-                ? trunkTotalLength 
-                : (segmentsPerBranch * segmentLength); // Fallback estimate
-            
-            if (estimatedTrunkLength > 0f)
-            {
-                float trunkProgress = atGlobalDist / estimatedTrunkLength;
-                if (trunkProgress < trunkBranchStart01)
-                    return; // Don't spawn branches from trunk until we've reached the threshold
-            }
-        }
+        if (branchCount >= maxBranches) return 0;
 
         int nextDepth = depth + 1;
 
@@ -731,29 +743,46 @@ public class MyceliumTree3D : MonoBehaviour
         float childSegLen = parentSegLen * lengthDecay * Lerp(0.9f, 1.1f, (float)rng.NextDouble());
         int childSegments = Mathf.Max(6, Mathf.RoundToInt(parentSegments * lengthDecay));
 
-        if (depth <= baseBoostDepth)
+        int minChildren = Mathf.Max(1, minChildrenPerEvent);
+        int maxChildren = Mathf.Max(minChildren, maxChildrenPerEvent);
+        int childCount = rng.Next(minChildren, maxChildren + 1);
+
+        var dirs = new List<Vector3>(childCount)
         {
-            childSegments = Mathf.Max(childSegments, baseMinSegments);
-            childSegLen *= baseSegLenBoost;
+            DeviateDirection(parentDir, branchSpreadDegrees * 0.45f)
+        };
+        if (childCount >= 2)
+            dirs.Add(DeviateDirection(parentDir, branchSpreadDegrees));
+        if (childCount >= 3)
+            dirs.Add(DeviateDirection(parentDir, branchSpreadDegrees * 1.25f));
+        while (dirs.Count < childCount)
+        {
+            float spread = branchSpreadDegrees * Lerp(0.8f, 1.4f, (float)rng.NextDouble());
+            dirs.Add(DeviateDirection(parentDir, spread));
         }
 
-        // продолжение
-        Vector3 d0 = DeviateDirection(parentDir, branchSpreadDegrees * 0.45f);
-        GrowBranch(outBranches, atPos, d0, atGlobalDist, nextDepth, childRadius, childSegments, childSegLen, null, true);
-
-        // вторая ветка
-        if (rng.NextDouble() < extraBranchChance && branchCount < maxBranches)
+        int spawned = 0;
+        for (int i = 0; i < dirs.Count; i++)
         {
-            Vector3 d1 = DeviateDirection(parentDir, branchSpreadDegrees);
-            GrowBranch(outBranches, atPos, d1, atGlobalDist, nextDepth, childRadius * 0.95f, childSegments, childSegLen, null, true);
-        }
+            if (branchCount >= maxBranches) break;
 
-        // третья
-        if (rng.NextDouble() < thirdBranchChance && branchCount < maxBranches)
-        {
-            Vector3 d2 = DeviateDirection(parentDir, branchSpreadDegrees * 1.25f);
-            GrowBranch(outBranches, atPos, d2, atGlobalDist, nextDepth, childRadius * 0.9f, childSegments - 2, childSegLen, null, true);
+            float radiusScale = Lerp(0.85f, 1.0f, (float)rng.NextDouble());
+            int segs = Mathf.Max(2, childSegments - i);
+            GrowBranch(
+                outBranches,
+                atPos,
+                dirs[i],
+                atGlobalDist,
+                nextDepth,
+                childRadius * radiusScale,
+                segs,
+                childSegLen,
+                null,
+                true
+            );
+            spawned++;
         }
+        return spawned;
     }
 
     // helpers

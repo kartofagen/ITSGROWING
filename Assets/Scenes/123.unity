@@ -180,15 +180,16 @@ MonoBehaviour:
   segmentLength: 0.08
   wiggle: 0.167
   branchSpreadDegrees: 35
-  extraBranchChance: 0.929
-  thirdBranchChance: 0.073
   maxBranches: 1792
   radiusDecay: 0.95
   lengthDecay: 0.98
-  trunkBranchStart01: 0
-  baseMinSegments: 2
-  baseBoostDepth: 0
-  baseSegLenBoost: 1
+  branchStart01: 0.2
+  branchGuarantee01: 0.5
+  minBranchesByGuarantee: 3
+  branchInterval: 0.6
+  branchChanceAfterStart: 0.35
+  minChildrenPerEvent: 1
+  maxChildrenPerEvent: 2
   useSphereBounds: 0
   sphereCenter: {x: 0, y: 0, z: 0}
   sphereRadius: 8
@@ -358,15 +359,16 @@ MonoBehaviour:
   segmentLength: 0.1
   wiggle: 0.167
   branchSpreadDegrees: 50.5
-  extraBranchChance: 0
-  thirdBranchChance: 0
   maxBranches: 1825
   radiusDecay: 0.844
   lengthDecay: 0.95
-  trunkBranchStart01: 0.905
-  baseMinSegments: 2
-  baseBoostDepth: 0
-  baseSegLenBoost: 1.25
+  branchStart01: 0.2
+  branchGuarantee01: 0.5
+  minBranchesByGuarantee: 3
+  branchInterval: 0.6
+  branchChanceAfterStart: 0.35
+  minChildrenPerEvent: 1
+  maxChildrenPerEvent: 2
   useSphereBounds: 0
   sphereCenter: {x: 0, y: 0, z: 0}
   sphereRadius: 6
@@ -644,15 +646,16 @@ MonoBehaviour:
   segmentLength: 0.08
   wiggle: 0.167
   branchSpreadDegrees: 35
-  extraBranchChance: 0.929
-  thirdBranchChance: 0.073
   maxBranches: 1251
   radiusDecay: 0.95
   lengthDecay: 0.98
-  trunkBranchStart01: 0.25
-  baseMinSegments: 18
-  baseBoostDepth: 2
-  baseSegLenBoost: 1.25
+  branchStart01: 0.2
+  branchGuarantee01: 0.5
+  minBranchesByGuarantee: 3
+  branchInterval: 0.6
+  branchChanceAfterStart: 0.35
+  minChildrenPerEvent: 1
+  maxChildrenPerEvent: 2
   useSphereBounds: 1
   sphereCenter: {x: 0, y: 0, z: 0}
   sphereRadius: 6
@@ -1223,31 +1226,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   radius: 0.04
-  sides: 6
+  sides: 3
   capStart: 1
   capEnd: 1
-  maxDepth: 10
-  segmentsPerBranch: 96
+  maxDepth: 8
+  segmentsPerBranch: 118
   segmentLength: 0.08
   wiggle: 0.167
   branchSpreadDegrees: 35
-  extraBranchChance: 1
-  thirdBranchChance: 1
-  maxBranches: 1792
+  maxBranches: 1170
   radiusDecay: 0.95
   lengthDecay: 0.98
-  trunkBranchStart01: 0
-  baseMinSegments: 2
-  baseBoostDepth: 0
-  baseSegLenBoost: 1
+  branchStart01: 0
+  branchGuarantee01: 1
+  minBranchesByGuarantee: 1000
+  branchInterval: 0.25
+  branchChanceAfterStart: 0.35
+  minChildrenPerEvent: 1
+  maxChildrenPerEvent: 2
   useSphereBounds: 1
   sphereCenter: {x: 0, y: 0, z: 0}
   sphereRadius: 6.2
-  sphereOutMode: 2
+  sphereOutMode: 1
   slideStrength: 0.081
   surfaceInset: 0.001
   useHemisphere: 1
-  hemispherePlaneMode: 2
+  hemispherePlaneMode: 1
   planeSlideStrength: 0
   useThetaLimit: 1
   thetaMin: 4
@@ -1265,7 +1269,7 @@ MonoBehaviour:
   showPorousSphereMesh: 0
   porousSphereMeshLatitudeSegments: 100
   porousSphereMeshLongitudeSegments: 100
-  usePerpendicularShell: 1
+  usePerpendicularShell: 0
   perpendicularShellCenter: {x: 0, y: 0, z: 0}
   perpendicularShellInnerRadius: 2
   perpendicularShellOuterRadius: 6.2
