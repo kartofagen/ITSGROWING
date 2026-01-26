@@ -1251,7 +1251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d338f38db886c1a4eb7efeeababa4f53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  growSpeed: 0.25
+  growSpeed: 0.5
   targetScale: 1
   healthToGive: 1
   isDefault: 1
@@ -1751,10 +1751,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 3.7429981
-  m_Height: 13.430047
+  m_Radius: 3.7429986
+  m_Height: 17.210386
   m_Direction: 0
-  m_Center: {x: 0, y: 3.742982, z: 0}
+  m_Center: {x: -1.8901914, y: 3.7429817, z: 0}
 --- !u!1 &892302062
 GameObject:
   m_ObjectHideFlags: 0
@@ -3296,6 +3296,10 @@ PrefabInstance:
     - target: {fileID: 2558371621287259213, guid: dee142bcf7cf7e042b25e81c2703bddc, type: 3}
       propertyPath: m_Name
       value: MyceliumEaterBase
+      objectReference: {fileID: 0}
+    - target: {fileID: 3619115896536978886, guid: dee142bcf7cf7e042b25e81c2703bddc, type: 3}
+      propertyPath: growSpeed
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

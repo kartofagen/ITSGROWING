@@ -293,7 +293,6 @@ public class EnemiesPercussionManager : InstrumentBase
     {
         int killed = EnemyWaves.Instance?.KilledEnemies ?? 0;
         spawnRate = initialSpawnRate / (1f + killed * spawnRateCoeff);
-        Debug.Log($"EnemiesPercussionManager: Updated spawnRate to {spawnRate} based on {killed} killed enemies");
     }
     
     // Возвращает текущий внутренний coeff (для fallback в EnemyWaves)

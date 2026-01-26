@@ -10,23 +10,54 @@ public class EnemyHealth : MonoBehaviour
     
     private bool isDead = false;
     private AudioSource audioSource;
+    private Camera mainCamera;
     
-    public bool IsDead => isDead; // публичный геттер для внешних систем
-    public bool isEaten = false; // Added to prevent multiple eating
+    public bool IsDead => isDead;
+    public bool isEaten = false;
     
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
+        mainCamera = Camera.main;
     }
+    
     void OnTriggerEnter(Collider other)
     {
         if (isDead) return;
         if (other.CompareTag(projectileTag))
         {
-            Destroy(other.gameObject);
-            Die();
+            // Проверяем, находится ли враг в зоне видимости камеры
+            if (IsVisibleByCamera())
+            {
+                Destroy(other.gameObject);
+                Die();
+            }
+            else
+            {
+                // Если враг не виден, снаряд проходит сквозь него
+                // (или можно уничтожить снаряд без нанесения урона)
+                // Destroy(other.gameObject);
+            }
         }
     }
+    
+    private bool IsVisibleByCamera()
+    {
+        if (mainCamera == null) return false;
+        
+        Bounds bounds = renderer.bounds;
+        
+        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(mainCamera);
+        bool inFrustum = GeometryUtility.TestPlanesAABB(planes, bounds);
+        
+        if (!inFrustum) return false;
+        
+        Vector3 viewportPoint = mainCamera.WorldToViewportPoint(transform.position);
+        return viewportPoint.z > 0 && 
+               viewportPoint.x >= 0 && viewportPoint.x <= 1 && 
+               viewportPoint.y >= 0 && viewportPoint.y <= 1;
+    }
+    
     public void Die()
     {
         if (isDead) return;
@@ -37,12 +68,9 @@ public class EnemyHealth : MonoBehaviour
         transform.GetChild(0).localRotation = Quaternion.Euler(180, 0, 90);
         renderer.material = deadMaterial;
         
-        // Отключаем перемещение, но оставляем объект в сцене как "труп" (чтобы EatSounds его обнаружил)
         var em = GetComponent<EnemyMovement>();
         if (em != null) em.enabled = false;
         
-        // (Опционально) оставляем Collider включённым — EatSounds будет срабатывать по нему.
-        // Added: Notify waves of kill
         EnemyWaves.Instance?.IncrementKilledEnemies();
     }
 }
