@@ -121,6 +121,9 @@ public class MyceliumTree3D : MonoBehaviour
     [Tooltip("Multiplier for target bounds to determine spread radius around target.")]
     public float targetSpreadRadiusMultiplier = 1.5f;
 
+    [Tooltip("Segments per 1 unit of distance from tree center to target (0 = disabled).")]
+    [Range(0f, 20f)] public float segmentsPerUnitToTarget = 0f;
+
     [Header("Lights Generation")]
     [Range(0, 20)] public int lightCount = 5;
     [HideInInspector] public List<Vector4> lightSpots = new List<Vector4>();
@@ -179,6 +182,13 @@ public class MyceliumTree3D : MonoBehaviour
 
         sphereCenter = Vector3.zero; // или transform.TransformPoint(...)
 
+        int startSegments = segmentsPerBranch;
+        if (targetObject != null && segmentsPerUnitToTarget > 0f)
+        {
+            float distToTarget = Vector3.Distance(rootPos, targetObject.position);
+            startSegments = Mathf.Max(2, Mathf.RoundToInt(100 + distToTarget * segmentsPerUnitToTarget));
+        }
+
         // Initialize constraints
         sphereConstraint = useSphereBounds
             ? new SphereBoundsConstraint(
@@ -235,7 +245,7 @@ public class MyceliumTree3D : MonoBehaviour
             startGlobalDist: 0f,
             depth: 0,
             thisRadius: Mathf.Max(0.0001f, radius),
-            thisSegments: segmentsPerBranch,
+            thisSegments: startSegments,
             thisSegLen: segmentLength,
             extraConstraint: null,
             allowPerpendicularSpawn: true
