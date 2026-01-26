@@ -49,6 +49,9 @@ public class EnemiesPercussionManager : InstrumentBase
     private float nextSpawnTime = 0f;
     private Playback playback;
     private double startDspTime;
+    private double pausedAtDspTime;
+    private float pausedAtTime;
+    private bool isPausedInternal = false;
     
     private List<double> pendingMoveTimes = new List<double>();
     private object _lock = new object();
@@ -58,8 +61,6 @@ public class EnemiesPercussionManager : InstrumentBase
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         
-        // Не запускаем playback автоматически
-        // Ждем первого вызова RestartMidiProcessing от MusicManager
         if (midiFile == null)
         {
             Debug.LogWarning("EnemiesManager: No MIDI file assigned. Enemies will spawn but not move to rhythm.");
@@ -73,13 +74,12 @@ public class EnemiesPercussionManager : InstrumentBase
     private IEnumerator Intro()
     {
         yield return new WaitForSeconds(introDuration);
-
         intro = false;
     }
 
     void Update()
     {
-        if (isQuitting) return;
+        if (isQuitting || isPausedInternal) return;
 
         if (Time.time >= nextSpawnTime && !intro)
         {
@@ -105,10 +105,70 @@ public class EnemiesPercussionManager : InstrumentBase
             MoveAllEnemiesOneStep();
         }
     }
+
+    public void OnPause()
+    {
+        if (isPausedInternal) return;
+        
+        isPausedInternal = true;
+        pausedAtDspTime = AudioSettings.dspTime;
+        pausedAtTime = Time.time;
+        
+        // Pause MIDI playback
+        if (playback != null)
+        {
+            try
+            {
+                playback.Stop();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Error pausing EnemiesPercussionManager playback: {ex.Message}");
+            }
+        }
+        
+        Debug.Log("EnemiesPercussionManager paused");
+    }
+
+    public void OnResume()
+    {
+        if (!isPausedInternal) return;
+        
+        double pauseDuration = AudioSettings.dspTime - pausedAtDspTime;
+        float timePauseDuration = Time.time - pausedAtTime;
+        
+        // Adjust all pending move times
+        lock (_lock)
+        {
+            for (int i = 0; i < pendingMoveTimes.Count; i++)
+            {
+                pendingMoveTimes[i] += pauseDuration;
+            }
+        }
+        
+        // Adjust next spawn time
+        nextSpawnTime += timePauseDuration;
+        
+        // Resume MIDI playback
+        if (playback != null)
+        {
+            try
+            {
+                playback.Start();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Error resuming EnemiesPercussionManager playback: {ex.Message}");
+            }
+        }
+        
+        isPausedInternal = false;
+        Debug.Log($"EnemiesPercussionManager resumed (adjusted times by {pauseDuration}s)");
+    }
     
     void SpawnEnemy()
     {
-        if (isQuitting || player == null) return;
+        if (isQuitting || player == null || isPausedInternal) return;
 
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         Vector2 spawnPosition = (Vector2)player.position + spawnDistance * new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
@@ -167,7 +227,7 @@ public class EnemiesPercussionManager : InstrumentBase
     
     private void MoveAllEnemiesOneStep()
     {
-        if (isQuitting) return;
+        if (isQuitting || isPausedInternal) return;
 
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
         foreach (var enemy in enemies)
@@ -194,6 +254,8 @@ public class EnemiesPercussionManager : InstrumentBase
             pendingMoveTimes.Clear();
         }
 
+        isPausedInternal = false;
+
         if (midiFile != null)
         {
             SetupMidiPlayback();
@@ -209,7 +271,6 @@ public class EnemiesPercussionManager : InstrumentBase
                 playback.EventPlayed -= OnEventPlayed;
                 playback.Stop();
                 
-                // Даем время на завершение нативных таймеров
                 System.Threading.Thread.Sleep(50);
                 
                 playback.Dispose();

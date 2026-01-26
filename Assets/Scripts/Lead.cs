@@ -20,6 +20,8 @@ public class Lead : InstrumentBase
 
     private Playback playback;
     private double startDspTime;
+    private double pausedAtDspTime;
+    private bool isPausedInternal = false;
 
     private float initialAngleOffset;
     
@@ -30,7 +32,7 @@ public class Lead : InstrumentBase
     private struct PendingShot
     {
         public float angle;
-        public float spawnTime;
+        public double spawnTime;
     }
 
     void Start()
@@ -40,7 +42,7 @@ public class Lead : InstrumentBase
 
     void Update()
     {
-        if (isQuitting || midiFile == null) return;
+        if (isQuitting || midiFile == null || isPausedInternal) return;
 
         List<PendingShot> toSpawn = new List<PendingShot>();
         lock (_lock)
@@ -59,6 +61,63 @@ public class Lead : InstrumentBase
         {
             SpawnProjectile(shot.angle);
         }
+    }
+
+    public void OnPause()
+    {
+        if (isPausedInternal) return;
+        
+        isPausedInternal = true;
+        pausedAtDspTime = AudioSettings.dspTime;
+        
+        // Pause MIDI playback
+        if (playback != null)
+        {
+            try
+            {
+                playback.Stop();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Error pausing Lead playback: {ex.Message}");
+            }
+        }
+        
+        Debug.Log("Lead paused");
+    }
+
+    public void OnResume()
+    {
+        if (!isPausedInternal) return;
+        
+        double pauseDuration = AudioSettings.dspTime - pausedAtDspTime;
+        
+        // Adjust all pending shot times
+        lock (_lock)
+        {
+            for (int i = 0; i < pendingShots.Count; i++)
+            {
+                var shot = pendingShots[i];
+                shot.spawnTime += pauseDuration;
+                pendingShots[i] = shot;
+            }
+        }
+        
+        // Resume MIDI playback
+        if (playback != null)
+        {
+            try
+            {
+                playback.Start();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Error resuming Lead playback: {ex.Message}");
+            }
+        }
+        
+        isPausedInternal = false;
+        Debug.Log($"Lead resumed (adjusted times by {pauseDuration}s)");
     }
 
     private void SetupMidiPlayback()
@@ -125,7 +184,7 @@ public class Lead : InstrumentBase
                 {
                     pendingShots.Add(new PendingShot { 
                         angle = relativeAngle, 
-                        spawnTime = (float)spawnDspTime
+                        spawnTime = spawnDspTime
                     });
                 }
             }
@@ -141,7 +200,7 @@ public class Lead : InstrumentBase
 
     private void SpawnProjectile(float relativeAngle)
     {
-        if (isQuitting) return;
+        if (isQuitting || isPausedInternal) return;
 
         float baseAngle = transform.localEulerAngles.z - initialAngleOffset;
         float spawnAngle = (baseAngle + relativeAngle) * Mathf.Deg2Rad;
@@ -167,6 +226,8 @@ public class Lead : InstrumentBase
             pendingShots.Clear();
         }
 
+        isPausedInternal = false;
+
         if (midiFile != null)
         {
             SetupMidiPlayback();
@@ -182,7 +243,6 @@ public class Lead : InstrumentBase
                 playback.EventPlayed -= OnEventPlayed;
                 playback.Stop();
                 
-                // Даем время на завершение нативных таймеров
                 System.Threading.Thread.Sleep(50);
                 
                 playback.Dispose();
