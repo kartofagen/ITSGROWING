@@ -1243,7 +1243,7 @@ MonoBehaviour:
       melody: {fileID: 0}
       midiAsset: {fileID: 0}
       stateId: 0
-  - threshold: 15
+  - threshold: 12
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1251,7 +1251,7 @@ MonoBehaviour:
       melody: {fileID: 0}
       midiAsset: {fileID: 0}
       stateId: 1
-  - threshold: 30
+  - threshold: 16
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1304,9 +1304,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 3.43
-  m_Height: 13.728346
+  m_Height: 21.578505
   m_Direction: 1
-  m_Center: {x: 0.00004030504, y: 6.7889996, z: 0}
+  m_Center: {x: 0.00007088443, y: 10.714037, z: 0}
 --- !u!135 &717290467
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1422,7 +1422,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 12
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1486,7 +1486,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d338f38db886c1a4eb7efeeababa4f53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  growSpeed: 0.5
+  growSpeed: 1
   targetScale: 1
   healthToGive: 1
   isDefault: 1
@@ -1780,7 +1780,7 @@ MonoBehaviour:
       melody: {fileID: 8300000, guid: fcc9f50f406e210429323b27f2617737, type: 3}
       midiAsset: {fileID: 4900000, guid: 0977a9b0f7bf1d8429d378e7531c8038, type: 3}
       stateId: 0
-  - threshold: 13
+  - threshold: 12
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1788,7 +1788,7 @@ MonoBehaviour:
       melody: {fileID: 8300000, guid: 45bcc942f6db1184d902b94e78620540, type: 3}
       midiAsset: {fileID: 4900000, guid: 4ce3605d28d333a43b2e088e7ef2e728, type: 3}
       stateId: 1
-  - threshold: 30
+  - threshold: 16
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1924,7 +1924,7 @@ MonoBehaviour:
       melody: {fileID: 8300000, guid: 132213e50c2361e419ae39cca4c34b51, type: 3}
       midiAsset: {fileID: 0}
       stateId: 0
-  - threshold: 15
+  - threshold: 12
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -1932,7 +1932,7 @@ MonoBehaviour:
       melody: {fileID: 8300000, guid: 825b5d0a40ebf974eb004069b7078546, type: 3}
       midiAsset: {fileID: 0}
       stateId: 1
-  - threshold: 30
+  - threshold: 16
     options:
     - optionName: 
       initialMelody: {fileID: 0}
@@ -2155,7 +2155,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 280, y: -560}
+  m_AnchoredPosition: {x: 350, y: -750}
   m_SizeDelta: {x: 300, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1224498991
@@ -2488,7 +2488,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1610, y: -560}
+  m_AnchoredPosition: {x: 1650, y: -750}
   m_SizeDelta: {x: 300, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1565421661
@@ -2667,7 +2667,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 10
+  m_characterSpacing: 12
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -2747,7 +2747,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 1080}
+  m_SizeDelta: {x: 2000, y: 1500}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1663751494
 MonoBehaviour:
@@ -2762,9 +2762,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Padding:
-    m_Left: 130
-    m_Right: -870
-    m_Top: 500
+    m_Left: 200
+    m_Right: -800
+    m_Top: 690
     m_Bottom: 0
   m_ChildAlignment: 0
   m_Spacing: 0
@@ -2850,7 +2850,7 @@ MonoBehaviour:
   spawnRate: 7
   spawnDistance: 30
   playOffset: 0
-  moveDistance: 1.5
+  moveDistance: 1
   spawnRateCoeff: 0
 --- !u!4 &1746083193
 Transform:
@@ -2883,15 +2883,18 @@ MonoBehaviour:
   - threshold: 30
     melody: {fileID: 8300000, guid: 3749ea491f6752f428e2ff8e271ccb1a, type: 3}
     midiAsset: {fileID: 4900000, guid: 3770e18e96df4b543913d52be23c27a6, type: 3}
-    spawnRateCoeff: 0
-  - threshold: 50
+    spawnRate: 7
+    spawnRateCoeff: 0.01
+  - threshold: 40
     melody: {fileID: 8300000, guid: 6484b4d4a069047439bed9cfd9e35fdf, type: 3}
     midiAsset: {fileID: 4900000, guid: 629952917cb4a584786bf6e8a0439a78, type: 3}
-    spawnRateCoeff: 0.1
-  - threshold: 100
+    spawnRate: 5
+    spawnRateCoeff: 0.05
+  - threshold: 50
     melody: {fileID: 8300000, guid: c5ee03e8b78b4c24f908b63621b3c8d7, type: 3}
     midiAsset: {fileID: 4900000, guid: 959ceb05adb43f94a81d12ac2819d506, type: 3}
-    spawnRateCoeff: 0.5
+    spawnRate: 2
+    spawnRateCoeff: 0.1
 --- !u!1 &1782108018
 GameObject:
   m_ObjectHideFlags: 0
@@ -3001,7 +3004,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.8
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -3145,7 +3148,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.8
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -3580,7 +3583,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 10
+  m_characterSpacing: 12
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -3692,7 +3695,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3619115896536978886, guid: dee142bcf7cf7e042b25e81c2703bddc, type: 3}
       propertyPath: growSpeed
-      value: 0.5
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -308,7 +308,11 @@ public class EnemiesPercussionManager : InstrumentBase
         UpdateSpawnRate();
         Debug.Log($"EnemiesPercussionManager: spawnRateCoeff set to {spawnRateCoeff}");
     }
-
+    
+    public void SetInitialSpawnRate(float newInitialSpawnRate)
+    {
+        initialSpawnRate = newInitialSpawnRate;
+    }
 
     void OnApplicationQuit()
     {

@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   grow: 1
-  growSpeed: 0.25
+  growSpeed: 1
   playOnStart: 1
   loop: 0
   lightPrefab: {fileID: 0}
@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d338f38db886c1a4eb7efeeababa4f53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  growSpeed: 0.25
+  growSpeed: 1
   targetScale: 1
   healthToGive: 1
   isDefault: 0

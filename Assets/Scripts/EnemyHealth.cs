@@ -7,6 +7,7 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private AudioClip[] dieSounds;
     [SerializeField] private SkinnedMeshRenderer renderer;
     [SerializeField] private Material deadMaterial;
+    [SerializeField] private float destroyDelay = 15f;
     
     private bool isDead = false;
     private AudioSource audioSource;
@@ -26,17 +27,10 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         if (other.CompareTag(projectileTag))
         {
-            // Проверяем, находится ли враг в зоне видимости камеры
             if (IsVisibleByCamera())
             {
                 Destroy(other.gameObject);
                 Die();
-            }
-            else
-            {
-                // Если враг не виден, снаряд проходит сквозь него
-                // (или можно уничтожить снаряд без нанесения урона)
-                // Destroy(other.gameObject);
             }
         }
     }
@@ -72,5 +66,7 @@ public class EnemyHealth : MonoBehaviour
         if (em != null) em.enabled = false;
         
         EnemyWaves.Instance?.IncrementKilledEnemies();
+        
+        Destroy(gameObject, destroyDelay);
     }
 }

@@ -199,7 +199,6 @@ public class MusicManager : MonoBehaviour
         {
             if (!obj.enabled || obj.script == null) continue;
         
-            // Переключаемся
             obj.useSourceA = !obj.useSourceA;
         
             AudioSource currentSource = obj.useSourceA ? obj.sourceA : obj.sourceB;

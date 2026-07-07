@@ -47,6 +47,7 @@ public class EnemyWaves : MonoBehaviour
         public TextAsset midiAsset;
 
         [Header("Spawn rate")]
+        public float spawnRate = 7f;
         [Tooltip("Коэффициент уменьшения spawnRate: spawnRate = initialSpawnRate / (1 + killed * spawnRateCoeff)")]
         public float spawnRateCoeff = 0.1f;
     }
@@ -74,7 +75,7 @@ public class EnemyWaves : MonoBehaviour
 
     public void IncrementKilledEnemies()
     {
-        KilledEnemies++;
+        ++KilledEnemies;
         EnemiesPercussionManager.Instance?.UpdateSpawnRate();
     }
 
@@ -89,20 +90,25 @@ public class EnemyWaves : MonoBehaviour
                 break;
         }
 
+        if (appliedLevels != shouldBeApplied)
+        {
+            LevelChangeChanges();
+        }
+        
         appliedLevels = shouldBeApplied;
 
         // Schedule the sync after state changes
         ScheduleSync();
     }
     
-    private float GetCurrentSpawnRateCoeffForAppliedState()
+    private (float, float) GetCurrentSpawnParamsForAppliedState()
     {
         for (int i = appliedLevels - 1; i >= 0; i--)
         {
-            return aggressionLevels[i].spawnRateCoeff;
+            return (aggressionLevels[i].spawnRate, aggressionLevels[i].spawnRateCoeff);
         }
 
-        return percussionManager != null ? percussionManager.GetSpawnRateCoeff() : 0.1f;
+        return (7f, 0.1f);
     }
 
     private AudioClip GetCurrentAudioClipForAppliedState()
@@ -151,7 +157,13 @@ public class EnemyWaves : MonoBehaviour
 
         musicManager.ScheduleUpdateForInstrument(percussionManager, newClip, newMidi);
 
-        float coeff = GetCurrentSpawnRateCoeffForAppliedState();
+        (float spawnRate, float coeff) = GetCurrentSpawnParamsForAppliedState();
+        percussionManager.SetInitialSpawnRate(spawnRate);
         percussionManager.SetSpawnRateCoeff(coeff);
+    }
+
+    private void LevelChangeChanges()
+    {
+        KilledEnemies = 0;
     }
 }
